@@ -324,7 +324,7 @@ mod tests {
         store: &store::testing::Store,
         name: &str,
     ) -> Result<types::ResourceId, repo::FacadeError> {
-        let handle = FacadeSequence::new(name.to_string(), (*store).clone(), (*repo).clone());
+        let handle = FacadeSequence::new(name.to_owned(), (*store).clone(), (*repo).clone());
 
         let metadata = types::SequenceMetadata::new(
             marshal::JsonMetadataBlob::try_from_str(
@@ -348,8 +348,8 @@ mod tests {
         sequence: &types::ResourceId,
         name: &str,
     ) -> Result<types::ResourceId, repo::FacadeError> {
-        let handle = FacadeTopic::new(name.to_string(), (*store).clone(), (*repo).clone());
-        let props = types::TopicProperties::new(rw::Format::Default, "test_tag".to_string());
+        let handle = FacadeTopic::new(name.to_owned(), (*store).clone(), (*repo).clone());
+        let props = types::TopicProperties::new(rw::Format::Default, "test_tag".to_owned());
 
         let metadata = types::TopicMetadata::new(
             props,
@@ -371,7 +371,7 @@ mod tests {
     /// This tests checks the creation against the repository and compares values to check if
     /// the creation was successful.
     async fn sequence_create(pool: sqlx::Pool<repo::Database>) -> sqlx::Result<()> {
-        let name = "/test_sequence".to_string();
+        let name = "/test_sequence".to_owned();
 
         let repo = repo::testing::Repository::new(pool);
         let store = store::testing::Store::new_random_on_tmp().unwrap();
@@ -421,7 +421,7 @@ mod tests {
     #[sqlx::test]
     /// Test checking if the creation of an already existing sequence fails.
     async fn sequence_create_existing(pool: sqlx::Pool<repo::Database>) -> sqlx::Result<()> {
-        let name = "test_sequence".to_string();
+        let name = "test_sequence".to_owned();
         let repo = repo::testing::Repository::new(pool);
         let store = store::testing::Store::new_random_on_tmp().unwrap();
 
@@ -440,8 +440,8 @@ mod tests {
     #[sqlx::test]
     /// Test checking if the creation of an already existing sequence fails.
     async fn topic_create(pool: sqlx::Pool<repo::Database>) -> sqlx::Result<()> {
-        let sequence_name = "test_sequence".to_string();
-        let topic_name = "test_sequence/test_topic".to_string();
+        let sequence_name = "test_sequence".to_owned();
+        let topic_name = "test_sequence/test_topic".to_owned();
 
         let repo = repo::testing::Repository::new(pool);
         let store = store::testing::Store::new_random_on_tmp().unwrap();
@@ -461,8 +461,8 @@ mod tests {
     #[sqlx::test]
     /// Test checking if the creation of an already existing sequence fails.
     async fn topic_create_unauthorized(pool: sqlx::Pool<repo::Database>) -> sqlx::Result<()> {
-        let sequence_name = "test_sequence".to_string();
-        let topic_name = "test_topic".to_string();
+        let sequence_name = "test_sequence".to_owned();
+        let topic_name = "test_topic".to_owned();
 
         let repo = repo::testing::Repository::new(pool);
         let store = store::testing::Store::new_random_on_tmp().unwrap();

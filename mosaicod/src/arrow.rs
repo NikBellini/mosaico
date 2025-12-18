@@ -364,7 +364,7 @@ mod tests {
         let flattened_names: Vec<String> =
             schema_ref.squashed_iter().map(|(name, _)| name).collect();
 
-        assert_eq!(flattened_names, vec!["id".to_string(), "name".to_string()]);
+        assert_eq!(flattened_names, vec!["id".to_owned(), "name".to_owned()]);
     }
 
     #[test]
@@ -387,10 +387,10 @@ mod tests {
         assert_eq!(
             flattened_names,
             vec![
-                "user_id".to_string(),
-                "address.street".to_string(),
-                "address.zip".to_string(),
-                "is_active".to_string(),
+                "user_id".to_owned(),
+                "address.street".to_owned(),
+                "address.zip".to_owned(),
+                "is_active".to_owned(),
             ]
         );
     }
@@ -420,10 +420,10 @@ mod tests {
         assert_eq!(
             flattened_names,
             vec![
-                "id".to_string(),
-                "profile.age".to_string(),
-                "profile.location.city".to_string(),
-                "profile.location.country".to_string(),
+                "id".to_owned(),
+                "profile.age".to_owned(),
+                "profile.location.city".to_owned(),
+                "profile.location.country".to_owned(),
             ]
         );
     }
@@ -472,7 +472,7 @@ mod tests {
         // Since the code only recurses on DataType::Struct, List and Map remain as leaf nodes.
         assert_eq!(
             flattened_names,
-            vec!["list_of_ints".to_string(), "map_data".to_string(),]
+            vec!["list_of_ints".to_owned(), "map_data".to_owned(),]
         );
     }
 }
