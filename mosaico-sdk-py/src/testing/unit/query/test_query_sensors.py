@@ -545,6 +545,27 @@ class TestQueryTemperatureAPI:
         # Check ontology flatness (the simple part)
         assert result["ontology"] == expected_dict["ontology"]
 
+    def test_conversion_helper_methods(self):
+        """
+        Tests the conversion helper methods for creating and converting the
+        `Temperature` `value` in both Celsius and Fahrenheit.
+        """
+        # Assert the creation from Celsius
+        temperature = Temperature.from_celsius(10)
+        assert temperature.value == 283.15
+
+        # Assert the creation from Fahrenheit
+        temperature = Temperature.from_fahrenheit(5)
+        assert temperature.value == 258.15
+
+        # Assert the conversion in Celsius
+        temperature = Temperature(value=10)
+        assert temperature.to_celsius() == -263.15
+
+        # Assert the conversion in Fahrenheit
+        temperature = Temperature(value=273.15)
+        assert temperature.to_fahrenheit() == 32
+
 
 class TestQueryPressureAPI:
     def test_accessibility(self):
