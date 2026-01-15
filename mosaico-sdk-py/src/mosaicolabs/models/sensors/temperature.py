@@ -35,6 +35,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
     @classmethod
     def from_celsius(
         cls,
+        *,
         value: float,
         header: Optional[Header] = None,
         variance: Optional[float] = None,
@@ -64,6 +65,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
     @classmethod
     def from_fahrenheit(
         cls,
+        *,
         value: float,
         header: Optional[Header] = None,
         variance: Optional[float] = None,

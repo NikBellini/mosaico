@@ -37,6 +37,7 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
     @classmethod
     def from_atm(
         cls,
+        *,
         value: float,
         header: Optional[Header] = None,
         variance: Optional[float] = None,
@@ -66,6 +67,7 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
     @classmethod
     def from_bar(
         cls,
+        *,
         value: float,
         header: Optional[Header] = None,
         variance: Optional[float] = None,
@@ -95,6 +97,7 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
     @classmethod
     def from_psi(
         cls,
+        *,
         value: float,
         header: Optional[Header] = None,
         variance: Optional[float] = None,
