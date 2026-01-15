@@ -551,12 +551,12 @@ class TestQueryTemperatureAPI:
         `Temperature` `value` in both Celsius and Fahrenheit.
         """
         # Assert the creation and conversion in Celsius
-        temperature = Temperature.from_celsius(10)
+        temperature = Temperature.from_celsius(value=10)
         assert temperature.value == 283.15
         assert temperature.to_celsius() == 10
 
         # Assert the creation and conversion in Fahrenheit
-        temperature = Temperature.from_fahrenheit(5)
+        temperature = Temperature.from_fahrenheit(value=5)
         assert temperature.value == 258.15
         assert temperature.to_fahrenheit() == 5
 
@@ -657,17 +657,17 @@ class TestQueryPressureAPI:
         `Pressure` `value` in both Atm, Bar and Psi.
         """
         # Assert the creation and conversion in Atm
-        pressure = Pressure.from_atm(10)
+        pressure = Pressure.from_atm(value=10)
         assert pressure.value == 1013250
         assert pressure.to_atm() == 10
 
         # Assert the creation and conversion in Bar
-        pressure = Pressure.from_bar(10)
+        pressure = Pressure.from_bar(value=10)
         assert pressure.value == 1000000
         assert pressure.to_bar() == 10
 
         # Assert the creation and conversion in Psi
-        pressure = Pressure.from_psi(7000)
+        pressure = Pressure.from_psi(value=7000)
         assert pressure.value == 1.015264164110001
         assert pressure.to_psi() == 7000
 
