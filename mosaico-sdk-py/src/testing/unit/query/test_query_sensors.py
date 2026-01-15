@@ -550,21 +550,15 @@ class TestQueryTemperatureAPI:
         Tests the conversion helper methods for creating and converting the
         `Temperature` `value` in both Celsius and Fahrenheit.
         """
-        # Assert the creation from Celsius
+        # Assert the creation and conversion in Celsius
         temperature = Temperature.from_celsius(10)
         assert temperature.value == 283.15
+        assert temperature.to_celsius() == 10
 
-        # Assert the creation from Fahrenheit
+        # Assert the creation and conversion in Fahrenheit
         temperature = Temperature.from_fahrenheit(5)
         assert temperature.value == 258.15
-
-        # Assert the conversion in Celsius
-        temperature = Temperature(value=10)
-        assert temperature.to_celsius() == -263.15
-
-        # Assert the conversion in Fahrenheit
-        temperature = Temperature(value=273.15)
-        assert temperature.to_fahrenheit() == 32
+        assert temperature.to_fahrenheit() == 5
 
 
 class TestQueryPressureAPI:
@@ -656,6 +650,26 @@ class TestQueryPressureAPI:
         # Check topic nesting (the complex part)
         # Check ontology flatness (the simple part)
         assert result["ontology"] == expected_dict["ontology"]
+
+    def test_conversion_helper_methods(self):
+        """
+        Tests the conversion helper methods for creating and converting the
+        `Pressure` `value` in both Atm, Bar and Psi.
+        """
+        # Assert the creation and conversion in Atm
+        pressure = Pressure.from_atm(10)
+        assert pressure.value == 1013250
+        assert pressure.to_atm() == 10
+
+        # Assert the creation and conversion in Bar
+        pressure = Pressure.from_bar(10)
+        assert pressure.value == 1000000
+        assert pressure.to_bar() == 10
+
+        # Assert the creation and conversion in Psi
+        pressure = Pressure.from_psi(7000)
+        assert pressure.value == 1.015264164110001
+        assert pressure.to_psi() == 7000
 
 
 class TestQueryRangeAPI:

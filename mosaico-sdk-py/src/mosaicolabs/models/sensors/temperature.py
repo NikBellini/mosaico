@@ -41,7 +41,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
         variance_type: Optional[int] = None,
     ) -> "Temperature":
         """
-        Creates a `Temperature` instance using the value in Celsius and converting it in Kelvin the formula
+        Creates a `Temperature` instance using the value in Celsius and converting it in Kelvin using the formula
         `Kelvin = Celsius + 273.15`.
 
         Args:
@@ -70,7 +70,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
         variance_type: Optional[int] = None,
     ) -> "Temperature":
         """
-        Creates a `Temperature` instance using the value in Fahrenheit and converting it in Kelvin the formula
+        Creates a `Temperature` instance using the value in Fahrenheit and converting it in Kelvin using the formula
         `Kelvin = (Fahrenheit - 32) * 5 / 9 + 273.15`.
 
         Args:
@@ -92,7 +92,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
 
     def to_celsius(self) -> float:
         """
-        Converts and returns the `Temperature` value in Celsius following the formula
+        Converts and returns the `Temperature` value in Celsius using the formula
         `Celsius = Kelvin - 273.15`.
 
         Returns:
@@ -102,7 +102,7 @@ class Temperature(Serializable, HeaderMixin, VarianceMixin):
 
     def to_fahrenheit(self) -> float:
         """
-        Converts and returns the `Temperature` value in Fahrenheit following the formula
+        Converts and returns the `Temperature` value in Fahrenheit using the formula
         `Fahrenheit = (Kelvin - 273.15) * 9 / 5 + 32`.
 
         Returns:

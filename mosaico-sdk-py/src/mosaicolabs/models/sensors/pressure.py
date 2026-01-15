@@ -4,10 +4,12 @@ Pressure Ontology Module.
 Defines the data structure for pressure sensors.
 """
 
+from typing import Optional
 import pyarrow as pa
 
 from ..mixins import HeaderMixin, VarianceMixin
 from ..serializable import Serializable
+from ..header import Header
 
 
 class Pressure(Serializable, HeaderMixin, VarianceMixin):
@@ -31,3 +33,120 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
 
     value: float
     """The absolute pressure reading from the sensor in Pascals."""
+
+    @classmethod
+    def from_atm(
+        cls,
+        value: float,
+        header: Optional[Header] = None,
+        variance: Optional[float] = None,
+        variance_type: Optional[int] = None,
+    ) -> "Pressure":
+        """
+        Creates a `Pressure` instance using the value in Atm and converting it in Pascal using the formula
+        `Pascal = Atm * 101325`.
+
+        Args:
+            value (float): The pressure value in Atm.
+            header (Optional[Header]): The standard metadata header (optional).
+            variance (Optional[float]): The variance of the data.
+            variance_type (Optional[int]): Enum integer representing the variance parameterization.
+
+        Returns:
+            Pressure: A `Pressure` instance with value in Pascal.
+        """
+        value_in_pascal = value * 101325
+        return cls(
+            value=value_in_pascal,
+            header=header,
+            variance=variance,
+            variance_type=variance_type,
+        )
+
+    @classmethod
+    def from_bar(
+        cls,
+        value: float,
+        header: Optional[Header] = None,
+        variance: Optional[float] = None,
+        variance_type: Optional[int] = None,
+    ) -> "Pressure":
+        """
+        Creates a `Pressure` instance using the value in Bar and converting it in Pascal using the formula
+        `Pascal = Bar * 100000`.
+
+        Args:
+            value (float): The pressure value in Bar.
+            header (Optional[Header]): The standard metadata header (optional).
+            variance (Optional[float]): The variance of the data.
+            variance_type (Optional[int]): Enum integer representing the variance parameterization.
+
+        Returns:
+            Temperature: A `Temperature` instance with value in Kelvin.
+        """
+        value_in_pascal = value * 100000
+        return cls(
+            value=value_in_pascal,
+            header=header,
+            variance=variance,
+            variance_type=variance_type,
+        )
+
+    @classmethod
+    def from_psi(
+        cls,
+        value: float,
+        header: Optional[Header] = None,
+        variance: Optional[float] = None,
+        variance_type: Optional[int] = None,
+    ) -> "Pressure":
+        """
+        Creates a `Pressure` instance using the value in Psi and converting it in Pascal using the formula
+        `Pascal = Psi / 6894.7572931783`.
+
+        Args:
+            value (float): The pressure value in Bar.
+            header (Optional[Header]): The standard metadata header (optional).
+            variance (Optional[float]): The variance of the data.
+            variance_type (Optional[int]): Enum integer representing the variance parameterization.
+
+        Returns:
+            Pressure: A `Pressure` instance with value in Pascal.
+        """
+        value_in_pascal = value / 6894.7572931783
+        return cls(
+            value=value_in_pascal,
+            header=header,
+            variance=variance,
+            variance_type=variance_type,
+        )
+
+    def to_atm(self) -> float:
+        """
+        Converts and returns the `Pressure` value in Atm using the formula
+        `Atm = Pascal / 101325`.
+
+        Returns:
+            float: The `Pressure` value in Atm.
+        """
+        return self.value / 101325
+
+    def to_bar(self) -> float:
+        """
+        Converts and returns the `Pressure` value in Bar using the formula
+        `Bar = Pascal / 100000`.
+
+        Returns:
+            float: The `Pressure` value in Bar.
+        """
+        return self.value / 100000
+
+    def to_psi(self) -> float:
+        """
+        Converts and returns the `Pressure` value in Bar using the formula
+        `Bar = Pascal * 6894.7572931783`.
+
+        Returns:
+            float: The `Pressure` value in Bar.
+        """
+        return self.value * 6894.7572931783
