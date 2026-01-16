@@ -14,7 +14,14 @@ from ..header import Header
 
 class Pressure(Serializable, HeaderMixin, VarianceMixin):
     """
-    Pressure measurement data.
+    Represents a physical pressure value. The internal representation is always stored in **Pascals (Pa)**.
+
+    Users are encouraged to use the `from_*` factory methods when initializing
+    pressure values expressed in units other than Pascals.
+
+    Parameters:
+        value (float): Pressure value in **Pascals (Pa)**. When using the constructor directly,
+            the value **must** be provided in Pascals.
     """
 
     # --- Schema Definition ---
@@ -84,7 +91,7 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
             variance_type (Optional[int]): Enum integer representing the variance parameterization.
 
         Returns:
-            Temperature: A `Temperature` instance with value in Kelvin.
+            Pressure: A `Pressure` instance with value in Pascal.
         """
         value_in_pascal = value * 100000
         return cls(
@@ -105,10 +112,10 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
     ) -> "Pressure":
         """
         Creates a `Pressure` instance using the value in Psi and converting it in Pascal using the formula
-        `Pascal = Psi / 6894.7572931783`.
+        `Pascal = Psi * 6894.7572931783`.
 
         Args:
-            value (float): The pressure value in Bar.
+            value (float): The pressure value in Psi.
             header (Optional[Header]): The standard metadata header (optional).
             variance (Optional[float]): The variance of the data.
             variance_type (Optional[int]): Enum integer representing the variance parameterization.
@@ -116,7 +123,7 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
         Returns:
             Pressure: A `Pressure` instance with value in Pascal.
         """
-        value_in_pascal = value / 6894.7572931783
+        value_in_pascal = value * 6894.7572931783
         return cls(
             value=value_in_pascal,
             header=header,
@@ -146,10 +153,10 @@ class Pressure(Serializable, HeaderMixin, VarianceMixin):
 
     def to_psi(self) -> float:
         """
-        Converts and returns the `Pressure` value in Bar using the formula
-        `Bar = Pascal * 6894.7572931783`.
+        Converts and returns the `Pressure` value in Psi using the formula
+        `Psi = Pascal / 6894.7572931783`.
 
         Returns:
-            float: The `Pressure` value in Bar.
+            float: The `Pressure` value in Psi.
         """
-        return self.value * 6894.7572931783
+        return self.value / 6894.7572931783

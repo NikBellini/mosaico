@@ -667,9 +667,9 @@ class TestQueryPressureAPI:
         assert pressure.to_bar() == 10
 
         # Assert the creation and conversion in Psi
-        pressure = Pressure.from_psi(value=7000)
-        assert pressure.value == 1.015264164110001
-        assert pressure.to_psi() == 7000
+        pressure = Pressure.from_psi(value=1000)
+        assert pressure.value == 6894757.293178299
+        assert pressure.to_psi() == 1000
 
 
 class TestQueryRangeAPI:

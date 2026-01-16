@@ -14,7 +14,22 @@ from ..serializable import Serializable
 
 class Range(Serializable, HeaderMixin, VarianceMixin):
     """
-    Range measurement data.
+    Represents a range measurement. The internal representation is always stored
+    in **meters (m)**.
+
+    A range measurement defines a valid distance interval between a minimum and
+    maximum value, together with the measured range, the sensor field of view,
+    and the radiation type used by the sensor.
+
+    Parameters:
+        radiation_type (int): Identifier of the radiation type used by the sensor.
+        field_of_view (float):Arc angle, in **radians**, over which the distance reading is valid.
+        min_range (float): Minimum valid range value in **meters (m)**. A fixed-distance measurement
+            is represented by setting `min_range` equal to `max_range`.
+        max_range (float): Maximum valid range value in **meters (m)**. A fixed-distance measurement
+            is represented by setting `min_range` equal to `max_range`.
+        range (float): Measured range value in **meters (m)**. The value **must** lie between
+            `min_range` and `max_range`, inclusive.
     """
 
     # --- Schema Definition ---

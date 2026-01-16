@@ -14,7 +14,14 @@ from ..header import Header
 
 class Temperature(Serializable, HeaderMixin, VarianceMixin):
     """
-    Temperature measurement data.
+    Represents a thermodynamic temperature. The internal representation is always stored in **Kelvin (K)**.
+
+    Users are encouraged to use the `from_*` factory methods when initializing
+    temperature values expressed in units other than Kelvin.
+
+    Parameters:
+        value (float): Temperature value in **Kelvin (K)**. When using the constructor directly,
+            the value **must** be provided in Kelvin.
     """
 
     # --- Schema Definition ---
