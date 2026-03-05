@@ -95,6 +95,12 @@ pub enum ServerError {
 
     #[error("internal error: {0}")]
     InternalError(String),
+
+    #[error("missing api key token in request")]
+    MissingApiKeyToken,
+
+    #[error("unauthorized")]
+    Unauthorized,
 }
 
 impl ServerError {
@@ -126,6 +132,8 @@ impl From<ServerError> for tonic::Status {
             ServerError::UnsupportedDescriptor => Status::invalid_argument(value.to_string()),
             ServerError::MissingOntologyTag => Status::invalid_argument(value.to_string()),
             ServerError::MissingSchema => Status::invalid_argument(value.to_string()),
+            ServerError::Unauthorized => Status::permission_denied(value.to_string()),
+            ServerError::MissingApiKeyToken => Status::permission_denied(value.to_string()),
 
             _ => Status::internal(value.to_string()),
         }

@@ -1,4 +1,5 @@
-use crate::endpoints;
+use super::middleware;
+use crate::endpoint;
 use crate::errors::ServerError;
 use arrow_flight::decode::FlightDataDecoder;
 use arrow_flight::{
@@ -63,9 +64,13 @@ pub async fn start(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("{}:{}", config.host, config.port).parse()?;
 
-    let service = MosaicoFlightService::try_new(store, db)?;
+    let service = MosaicodFlight::try_new(store, db.clone())?;
 
-    let svc = FlightServiceServer::new(service);
+    let mut svc = FlightServiceServer::new(service);
+
+    let layer = tower::ServiceBuilder::new()
+        .layer(middleware::AuthLayer::new(db))
+        .into_inner();
 
     let mut builder = Server::builder();
 
@@ -78,10 +83,11 @@ pub async fn start(
         warn!("TLS not enabled. Use the proper command line option to enable it.");
     }
 
-    let server = builder.add_service(
-        svc.max_decoding_message_size(params::params().max_message_size_in_bytes)
-            .max_encoding_message_size(params::params().max_message_size_in_bytes),
-    );
+    svc = svc
+        .max_decoding_message_size(params::params().max_message_size_in_bytes)
+        .max_encoding_message_size(params::params().max_message_size_in_bytes);
+
+    let server = builder.layer(layer).add_service(svc);
 
     if let Some(shutdown_notifier) = shutdown {
         server
@@ -97,25 +103,26 @@ pub async fn start(
     Ok(())
 }
 
-struct MosaicoFlightService {
+struct MosaicodFlight {
     store: store::StoreRef,
     db: db::Database,
     ts_gw: query::TimeseriesRef,
 }
 
-impl MosaicoFlightService {
+impl MosaicodFlight {
     pub fn try_new(store: store::StoreRef, db: db::Database) -> Result<Self, String> {
         let ts_gw = Arc::new(query::Timeseries::try_new(store.clone()).map_err(|e| e.to_string())?);
 
-        Ok(MosaicoFlightService { store, db, ts_gw })
+        Ok(MosaicodFlight { store, db, ts_gw })
     }
 
-    pub fn context(&self) -> endpoints::Context {
-        endpoints::Context::new(self.store.clone(), self.db.clone(), self.ts_gw.clone())
+    pub fn context(&self) -> endpoint::Context {
+        endpoint::Context::new(self.store.clone(), self.db.clone(), self.ts_gw.clone())
     }
 }
+
 #[tonic::async_trait]
-impl FlightService for MosaicoFlightService {
+impl FlightService for MosaicodFlight {
     type HandshakeStream = BoxStream<'static, Result<HandshakeResponse, Status>>;
     type ListFlightsStream = BoxStream<'static, Result<FlightInfo, Status>>;
     type DoGetStream = BoxStream<'static, Result<FlightData, Status>>;
@@ -137,9 +144,14 @@ impl FlightService for MosaicoFlightService {
         &self,
         request: Request<Criteria>,
     ) -> Result<Response<Self::ListFlightsStream>, Status> {
+        let auth_ctx = auth_context(&request)?;
+        if !auth_ctx.api_key.permissions.is_read() {
+            Err(ServerError::Unauthorized)?;
+        }
+
         let criteria = request.into_inner();
 
-        let stream = endpoints::list_flights(self.context(), criteria)
+        let stream = endpoint::list_flights(self.context(), criteria)
             .await
             .inspect_err(log_server_error)?;
 
@@ -150,9 +162,14 @@ impl FlightService for MosaicoFlightService {
         &self,
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
+        let auth_ctx = auth_context(&request)?;
+        if !auth_ctx.api_key.permissions.is_read() {
+            Err(ServerError::Unauthorized)?;
+        }
+
         let desc = request.into_inner();
 
-        let info = endpoints::get_flight_info(self.context(), desc)
+        let info = endpoint::get_flight_info(self.context(), desc)
             .await
             .inspect_err(log_server_error)?;
 
@@ -181,9 +198,14 @@ impl FlightService for MosaicoFlightService {
         &self,
         request: Request<Ticket>,
     ) -> Result<Response<Self::DoGetStream>, Status> {
+        let auth_ctx = auth_context(&request)?;
+        if !auth_ctx.api_key.permissions.is_read() {
+            Err(ServerError::Unauthorized)?;
+        }
+
         let ticket = request.into_inner();
 
-        let data_stream = endpoints::do_get(self.context(), ticket)
+        let data_stream = endpoint::do_get(self.context(), ticket)
             .await
             .inspect_err(log_server_error)?;
 
@@ -199,10 +221,15 @@ impl FlightService for MosaicoFlightService {
         &self,
         request: Request<Streaming<FlightData>>,
     ) -> Result<Response<Self::DoPutStream>, Status> {
+        let auth_ctx = auth_context(&request)?;
+        if !auth_ctx.api_key.permissions.is_write() {
+            Err(ServerError::Unauthorized)?;
+        }
+
         let stream = request.into_inner();
         let mut decoder = FlightDataDecoder::new(stream.map_err(Into::into));
 
-        endpoints::do_put(self.context(), &mut decoder)
+        endpoint::do_put(self.context(), &mut decoder)
             .await
             .inspect_err(log_server_error)?;
 
@@ -213,12 +240,14 @@ impl FlightService for MosaicoFlightService {
         &self,
         request: Request<FlightAction>,
     ) -> Result<Response<Self::DoActionStream>, Status> {
+        let auth_ctx = auth_context(&request)?;
+
         let action = request.into_inner();
         let action = marshal::ActionRequest::try_new(action.r#type.as_str(), &action.body)
             .map_err(ServerError::from)
             .inspect_err(log_server_error)?;
 
-        let response = endpoints::do_action(self.context(), action)
+        let response = endpoint::do_action(self.context(), action, auth_ctx.api_key.permissions)
             .await
             .inspect_err(log_server_error)?;
 
@@ -265,6 +294,13 @@ fn log_server_error(e: &ServerError) {
     }
 
     log::error!("{}", unrolled_error);
+}
+
+fn auth_context<T>(req: &Request<T>) -> Result<middleware::AuthContext, ServerError> {
+    req.extensions()
+        .get::<middleware::AuthContext>()
+        .cloned()
+        .ok_or_else(|| ServerError::Unauthorized)
 }
 
 #[cfg(test)]
