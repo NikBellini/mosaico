@@ -51,25 +51,30 @@ pub async fn get_flight_info(
                     // Collect manifests
                     let manifests = collect_manifests(ctx, &topics).await?;
 
+                    assert_eq!(topics.len(), manifests.len());
+
                     // Populate endpoints
-                    let endpoints: Vec<FlightEndpoint> = topics
+                    let endpoints: Vec<FlightEndpoint> = manifests
                         .into_iter()
                         .enumerate()
-                        .map(|(index, topic)| {
+                        .map(|(index, manifest)| {
+                            let topic = &topics[index];
+
                             let ticket = types::flight::TicketTopic {
                                 locator: topic.name().to_owned(),
                                 timestamp_range: cmd.timestamp_range.clone(),
                             };
 
-                            let app_mdata =
-                                marshal::flight::TopicAppMetadata::new(&manifests[index]);
-
-                            let e = FlightEndpoint::new()
+                            let mut e = FlightEndpoint::new()
                                 .with_ticket(Ticket {
                                     ticket: marshal::flight::ticket_topic_to_binary(ticket)?.into(),
                                 })
-                                .with_app_metadata(app_mdata)
                                 .with_location(topic.url()?);
+
+                            if let Some(m) = manifest {
+                                let app_mdata: marshal::flight::TopicAppMetadata = m.into();
+                                e.app_metadata = app_mdata.into();
+                            }
 
                             Ok::<FlightEndpoint, ServerError>(e)
                         })
@@ -95,7 +100,7 @@ pub async fn get_flight_info(
 
                     trace!("{} building schema (+platform metadata)", handle.locator);
 
-                    // Collect schema, if no schema was found generate an create an empty schema
+                    // Collect schema, if no schema was found generate an empty schema
                     let schema = match handle
                         .arrow_schema(metadata.properties.serialization_format)
                         .await
@@ -114,17 +119,16 @@ pub async fn get_flight_info(
                     let schema =
                         Schema::new_with_metadata(schema.fields().clone(), flatten_metadata);
 
-                    // Collect manifest, if no manifest is found an empty one is returned while
-                    // other errors are propagated
+                    // Get the manifest, if it exists.
                     let manifest = match handle.manifest().await {
                         Ok(m) => m,
-                        Err(facade::Error::NotFound(_)) => types::TopicManifest::new(),
                         Err(e) => return Err(e.into()),
                     };
 
                     // We can get directly the only elements since collect_manifests ensures that
                     // there will be at least one entry returned (if no error)
-                    let app_mdata = marshal::flight::TopicAppMetadata::new(&manifest);
+                    let app_mdata: Option<marshal::flight::TopicAppMetadata> =
+                        manifest.map(|m| m.into());
 
                     let ticket = types::flight::TicketTopic {
                         locator: handle.locator.clone().into(),
@@ -132,12 +136,15 @@ pub async fn get_flight_info(
                     };
 
                     // building a single endpoint for topic data
-                    let endpoint = FlightEndpoint::new()
+                    let mut endpoint = FlightEndpoint::new()
                         .with_ticket(Ticket {
                             ticket: marshal::flight::ticket_topic_to_binary(ticket)?.into(),
                         })
-                        .with_app_metadata(app_mdata)
                         .with_location(handle.locator.url()?);
+
+                    if let Some(app_mdata) = app_mdata {
+                        endpoint.app_metadata = app_mdata.into();
+                    }
 
                     trace!("{} generating endpoint {:?}", handle.locator, endpoint);
 
@@ -163,7 +170,7 @@ pub async fn get_flight_info(
 pub async fn collect_manifests(
     ctx: Context,
     topics: &[types::TopicResourceLocator],
-) -> Result<Vec<types::TopicManifest>, ServerError> {
+) -> Result<Vec<Option<types::TopicManifest>>, ServerError> {
     let mut manifests = Vec::new();
 
     for topic in topics {
@@ -176,7 +183,7 @@ pub async fn collect_manifests(
         // other errors are propagated
         let manifest = match handler.manifest().await {
             Ok(manifest) => manifest,
-            Err(facade::Error::NotFound(_)) => types::TopicManifest::new(),
+            Err(facade::Error::NotFound(_)) => None,
             Err(e) => return Err(e.into()),
         };
 

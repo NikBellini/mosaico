@@ -98,13 +98,3 @@ pub async fn notification_purge(
 
     Ok(ActionResponse::Empty)
 }
-
-/// Gets system information for a topic.
-pub async fn system_info(ctx: &Context, name: String) -> Result<ActionResponse, ServerError> {
-    info!("[{}] topic system information", name);
-
-    let handle = facade::Topic::new(name, ctx.store.clone(), ctx.db.clone());
-    let sysinfo = handle.system_info().await?;
-
-    Ok(ActionResponse::TopicSystemInfo(sysinfo.into()))
-}

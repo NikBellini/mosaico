@@ -6,14 +6,46 @@ use serde::{Deserialize, Serialize};
 // /////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TopicManifestInfo {
+    chunks_number: usize,
+    is_locked: bool,
+    total_size_bytes: usize,
+    created_timestamp: i64,
+}
+
+impl From<types::TopicInfo> for TopicManifestInfo {
+    fn from(info: types::TopicInfo) -> TopicManifestInfo {
+        Self {
+            chunks_number: info.chunks_number,
+            is_locked: info.is_locked,
+            total_size_bytes: info.total_size_bytes,
+            created_timestamp: info.created_timestamp.as_i64(),
+        }
+    }
+}
+
+impl From<TopicManifestInfo> for types::TopicInfo {
+    fn from(info: TopicManifestInfo) -> types::TopicInfo {
+        Self {
+            chunks_number: info.chunks_number,
+            is_locked: info.is_locked,
+            total_size_bytes: info.total_size_bytes,
+            created_timestamp: info.created_timestamp.into(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TopicManifest {
-    timestamp: Option<TopicManifestTimestamp>,
+    timestamp: TopicManifestTimestamp,
+    info: TopicManifestInfo,
 }
 
 impl From<types::TopicManifest> for TopicManifest {
     fn from(value: types::TopicManifest) -> Self {
         Self {
-            timestamp: value.timestamp.map(|v| v.into()),
+            timestamp: value.timestamp.into(),
+            info: value.info.into(),
         }
     }
 }
@@ -21,7 +53,8 @@ impl From<types::TopicManifest> for TopicManifest {
 impl From<TopicManifest> for types::TopicManifest {
     fn from(value: TopicManifest) -> Self {
         Self {
-            timestamp: value.timestamp.map(|v| v.into()),
+            timestamp: value.timestamp.into(),
+            info: value.info.into(),
         }
     }
 }

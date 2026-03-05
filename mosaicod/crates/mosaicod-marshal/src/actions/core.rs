@@ -73,9 +73,6 @@ pub enum ActionRequest {
     /// Deletes all notifications associated with a topic
     TopicNotificationPurge(requests::ResourceLocator),
 
-    /// Ask for system information about the topic
-    TopicSystemInfo(requests::ResourceLocator),
-
     /// Creates a new upload session for a sequence
     SessionCreate(requests::ResourceLocator),
 
@@ -128,7 +125,6 @@ impl ActionRequest {
 
             "topic_create" => parse_action_req!(TopicCreate, body),
             "topic_delete" => parse_action_req!(TopicDelete, body),
-            "topic_system_info" => parse_action_req!(TopicSystemInfo, body),
             "topic_notification_create" => parse_action_req!(TopicNotificationCreate, body),
             "topic_notification_list" => parse_action_req!(TopicNotificationList, body),
             "topic_notification_purge" => parse_action_req!(TopicNotificationPurge, body),
@@ -164,7 +160,6 @@ pub enum ActionResponse {
     SequenceNotificationList(responses::NotificationList),
 
     TopicCreate(responses::ResourceUuid),
-    TopicSystemInfo(responses::TopicSystemInfo),
     TopicNotificationList(responses::NotificationList),
 
     /// Returns the response key associated with the session just created

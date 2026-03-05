@@ -100,47 +100,6 @@ impl Topic {
         Ok(record.is_locked())
     }
 
-    /// Updates the database entry for this topic.
-    ///
-    /// If a record with the same name already exists, the operation fails and
-    /// the database transaction is rolled back, restoring the previous state.
-    pub async fn update(&self, metadata: TopicMetadata) -> Result<(), Error> {
-        let mut tx = self.db.transaction().await?;
-
-        // find topic record to check that upload is not completed and is still prossible
-        // to change data
-        let record = db::topic_find_by_locator(&mut tx, &self.locator).await?;
-        if record.is_locked() {
-            return Err(Error::TopicLocked);
-        }
-
-        db::topic_update_user_metadata(
-            &mut tx, //
-            &self.locator,
-            metadata.user_metadata.clone(),
-        )
-        .await?;
-        db::topic_update_ontology_tag(
-            &mut tx, //
-            &self.locator,
-            &metadata.properties.ontology_tag,
-        )
-        .await?;
-        // Save the last record for returning it
-        let _ = db::topic_update_serialization_format(
-            &mut tx,
-            &self.locator,
-            &metadata.properties.serialization_format.to_string(),
-        )
-        .await?;
-
-        self.metadata_write_to_store(metadata).await?;
-
-        tx.commit().await?;
-
-        Ok(())
-    }
-
     /// Read the database record for this sequence. If no record is found an error is returned.
     pub async fn resource_id(&self) -> Result<types::Identifiers, Error> {
         let mut cx = self.db.connection();
@@ -165,7 +124,7 @@ impl Topic {
 
     /// Finalize the write procedure of the topic. The topic is locked and additional data are
     /// consolidated (e.g. manifest, timestamp bounds). This function is intended to be called by
-    /// [`TopicWriterGuard`] to finilize the writing process.
+    /// [`TopicWriterGuard`] to finalize the writing process.
     async fn finalize(
         &mut self,
         timeseries_querier: query::TimeseriesRef,
@@ -177,8 +136,11 @@ impl Topic {
 
         let ts_range = res.timestamp_range().await?;
 
-        let manifest = types::TopicManifest::new()
-            .with_timestamp(types::TopicManifestTimestamp::new(ts_range));
+        let mut info = self.info().await?;
+        info.is_locked = true;
+
+        let manifest =
+            types::TopicManifest::new(types::TopicManifestTimestamp::new(ts_range), info);
 
         self.manifest_write_to_store(manifest).await?;
 
@@ -203,19 +165,19 @@ impl Topic {
 
     /// Reads [`TopicManifest`] associated with this topic.
     ///
-    /// If manifest can't be found a [`Error::NotFound`] error is returned.
-    pub async fn manifest(&self) -> Result<types::TopicManifest, Error> {
+    /// If manifest is not found, returns None.
+    pub async fn manifest(&self) -> Result<Option<types::TopicManifest>, Error> {
         let path = self.locator.path_manifest();
 
         if !self.store.exists(&path).await? {
-            return Err(Error::not_found(path.to_string_lossy().to_string()));
+            return Ok(None);
         }
 
         let bytes = self.store.read_bytes(path).await?;
 
         let data: marshal::TopicManifest = bytes.try_into()?;
 
-        Ok(data.into())
+        Ok(Some(data.into()))
     }
 
     /// Returns the topic arrow schema.
@@ -381,7 +343,7 @@ impl Topic {
     }
 
     /// Computes system info for the topic
-    pub async fn system_info(&self) -> Result<types::TopicSystemInfo, Error> {
+    async fn info(&self) -> Result<types::TopicInfo, Error> {
         let mut cx = self.db.connection();
         let record = db::topic_find_by_locator(&mut cx, &self.locator).await?;
 
@@ -402,11 +364,11 @@ impl Topic {
             total_size += self.store.size(file).await?;
         }
 
-        Ok(types::TopicSystemInfo {
+        Ok(types::TopicInfo {
             chunks_number: datafiles.len(),
             is_locked: record.is_locked(),
             total_size_bytes: total_size,
-            created_datetime: record.creation_timestamp().into(),
+            created_timestamp: record.creation_timestamp(),
         })
     }
 

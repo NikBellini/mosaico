@@ -42,13 +42,13 @@ pub struct TopicSystemInfo {
     pub created_datetime: String,
 }
 
-impl From<types::TopicSystemInfo> for TopicSystemInfo {
-    fn from(value: types::TopicSystemInfo) -> Self {
+impl From<types::TopicInfo> for TopicSystemInfo {
+    fn from(value: types::TopicInfo) -> Self {
         Self {
             chunks_number: value.chunks_number,
             total_size_bytes: value.total_size_bytes,
             is_locked: value.is_locked,
-            created_datetime: value.created_datetime.to_string(),
+            created_datetime: value.created_timestamp.to_string(),
         }
     }
 }

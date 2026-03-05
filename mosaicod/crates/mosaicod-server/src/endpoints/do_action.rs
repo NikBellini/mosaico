@@ -63,7 +63,6 @@ pub async fn do_action(ctx: Context, action: ActionRequest) -> Result<ActionResp
         ActionRequest::TopicNotificationPurge(data) => {
             topic::notification_purge(&ctx, data.locator).await
         }
-        ActionRequest::TopicSystemInfo(data) => topic::system_info(&ctx, data.locator).await,
 
         // /////
         // Layer

@@ -229,42 +229,31 @@ impl TopicProperties {
 ///
 /// This struct provides a snapshot of the topic's physical state on disk, including
 /// its size, structure, and lifecycle status.
-/// (cabba) FIXME: remove this
-pub struct TopicSystemInfo {
+pub struct TopicInfo {
     /// Number of chunks in the topic
     pub chunks_number: usize,
     /// True is the topic is currently locked, a topic is locked if
     /// some data was uploaded and the connection was closed gracefully
-    ///
-    /// # Note
-    /// (cabba) TODO: evaluate move this into a separate function since is not strictly related to system info
     pub is_locked: bool,
     /// Total size in bytes of the data.
     /// Metadata and other system files are excluded in the count.
     pub total_size_bytes: usize,
     /// Datetime of the topic creation
-    pub created_datetime: super::DateTime,
+    pub created_timestamp: super::Timestamp,
 }
 
 /// Metadata generated during topic consolidation.
 ///
 /// This manifest aggregates all topic details once the write process is finalized.
-#[derive(Default)]
 pub struct TopicManifest {
-    pub timestamp: Option<TopicManifestTimestamp>,
+    pub timestamp: TopicManifestTimestamp,
+    pub info: TopicInfo,
 }
 
 impl TopicManifest {
-    /// Generates an empty topic manifest
-    pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
-
-    pub fn with_timestamp(mut self, timestamp: TopicManifestTimestamp) -> Self {
-        self.timestamp = Some(timestamp);
-        self
+    /// Generates a topic manifest with a timestamp
+    pub fn new(timestamp: TopicManifestTimestamp, info: TopicInfo) -> Self {
+        Self { timestamp, info }
     }
 }
 
