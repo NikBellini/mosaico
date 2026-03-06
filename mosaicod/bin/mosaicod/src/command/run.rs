@@ -50,7 +50,7 @@ fn tls_config(tls: bool) -> Option<server::flight::TlsConfig> {
     None
 }
 
-pub fn run(args: Run) -> Result<(), common::Error> {
+pub fn run(args: Run, json_format: bool) -> Result<(), common::Error> {
     let tls = tls_config(args.tls);
 
     info!("startup store");
@@ -60,13 +60,12 @@ pub fn run(args: Run) -> Result<(), common::Error> {
     info!("startup multi-threaded runtime");
     let rt = common::init_runtime()?;
 
+    let db_config = db::Config {
+        db_url: params::params().db_url.parse()?,
+    };
+
     info!("startup database connection");
-    let db = common::init_db(
-        &rt,
-        db::Config {
-            db_url: params::params().db_url.parse()?,
-        },
-    )?;
+    let db = common::init_db(&rt, &db_config)?;
 
     let server = server::Server::new(args.host, args.port, store, db);
 
@@ -82,13 +81,17 @@ pub fn run(args: Run) -> Result<(), common::Error> {
     server.start_and_wait(
         rt,
         || {
-            print::startup_info(
-                args.host,
-                args.port,
-                &store_display_name,
-                &params::version(),
-                common::startup_time(),
-            );
+            // FIXME: print startup info in json format
+            if !json_format {
+                print::startup_info(
+                    args.host,
+                    args.port,
+                    &store_display_name,
+                    &db_config,
+                    &params::version(),
+                    common::startup_time(),
+                );
+            }
         },
         tls,
     )?;

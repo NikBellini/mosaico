@@ -76,7 +76,7 @@ where
         let db = self.db.clone();
 
         Box::pin(async move {
-            if token == "" {
+            if token.is_empty() {
                 return Ok(to_http_error(ServerError::MissingApiKeyToken));
             }
 
@@ -99,9 +99,7 @@ where
 
                     Ok(response)
                 }
-                Err(_) => {
-                    return Ok(to_http_error(ServerError::Unauthorized));
-                }
+                Err(_) => Ok(to_http_error(ServerError::Unauthorized)),
             }
         })
     }
@@ -111,6 +109,7 @@ fn to_http_error<ResBody>(err: ServerError) -> http::Response<ResBody>
 where
     ResBody: Default,
 {
+    tracing::error!("{}", err.unroll());
     let status: tonic::Status = err.into();
     status.into_http()
 }

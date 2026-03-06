@@ -107,6 +107,20 @@ impl ServerError {
     pub fn internal_error(msg: &str) -> Self {
         Self::InternalError(msg.to_owned())
     }
+
+    /// Build a string unrolling and cocatenating all inner errors
+    pub fn unroll(&self) -> String {
+        let mut unrolled_error = self.to_string();
+
+        let mut err: &dyn std::error::Error = self;
+
+        while let Some(inner_err) = err.source() {
+            unrolled_error.push_str(format!(" :: {}", inner_err).as_str());
+            err = inner_err;
+        }
+
+        unrolled_error
+    }
 }
 
 impl From<ServerError> for tonic::Status {

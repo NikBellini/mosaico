@@ -12,6 +12,10 @@ use clap::{Parser, Subcommand};
 #[command(version, about, long_about = None)]
 /// mosaicod - Mosaico high-performance daemon
 struct Cli {
+    /// Enable json output log. Disabled by default.
+    #[arg(long, global = true, default_value_t = false)]
+    json: bool,
+
     #[command(subcommand)]
     cmd: Commands,
 }
@@ -37,12 +41,12 @@ fn start() -> Result<Option<String>, common::Error> {
         }
     };
 
-    common::init_logger();
+    common::init_logger(args.json);
     common::load_env_variables()?;
 
     match args.cmd {
-        Commands::Run(args) => command::run(args)?,
-        Commands::Auth(args) => command::auth(args)?,
+        Commands::Run(sub_args) => command::run(sub_args, args.json)?,
+        Commands::Auth(sub_args) => command::auth(sub_args)?,
     }
 
     Ok(None)

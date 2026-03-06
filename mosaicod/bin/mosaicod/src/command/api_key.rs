@@ -63,7 +63,7 @@ pub fn auth(auth: ApiKey) -> Result<(), common::Error> {
 
     let db = common::init_db(
         &rt,
-        db::Config {
+        &db::Config {
             db_url: params::params().db_url.parse()?,
         },
     )?;
