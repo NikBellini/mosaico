@@ -20,6 +20,10 @@ MOSAICOD_DB_URL="postgresql://postgres:password@localhost:6543/mosaico"
 # is required to compile the code (and also we need to reinstall sqlx at each run).
 SQLX_OFFLINE=true
 
+# Enable is the server should start with api key management enabled. If this option is set to true
+# a defult API key will be generated. Use --api-key option to enable this from command line.
+ENABLE_API_KEY=false
+
 FILE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_DIR=$(readlink -f "${FILE_DIR}/..")
 DATABASE_URL="${MOSAICOD_DB_URL}"
@@ -52,6 +56,8 @@ error_handler() {
     echo "${RED}${BOLD}Ops, an error occurred. ${RESET}"
     exit 1
 }
+
+trap error_handler ERR
 
 title() {
     local text="$1"
@@ -87,32 +93,62 @@ function cleanup() {
     title "db + storage deleted" "#" ${YELLOW}
 }
 
-
-trap error_handler ERR
 trap cleanup EXIT
 
-mkdir -p "${TEST_DIRECTORY}"
+main() {
+
+    while [ $# -gt 0 ]; do
+        case "$1" in 
+            --api-key)
+                ENABLE_API_KEY=true
+                shift
+                ;;
+        esac
+    done
+
+    mkdir -p "${TEST_DIRECTORY}"
+
+    title "development environment" "#" ${GREEN}
+
+    title "setup" "-"
+    echo " * MOSAICOD_DB_URL ${DIM}${MOSAICOD_DB_URL}${RESET}"
+    echo " * DATABASE_URL    ${DIM}${DATABASE_URL}${RESET}"
+    echo " * SQLX_OFFLINE    ${DIM}${SQLX_OFFLINE}${RESET}"
+    cd ${DOCKER_PATH}
+    title "docker" "." ${BLUE}
+    docker compose up -d --wait 2> /dev/null
+    echo "Started ${BOLD}docker/testing${RESET} compose file"
+
+    title "mosaicod" "-"
+    cd ${MOSAICOD_PATH}
+    title "build" "." ${BLUE}
+    cargo build
+
+    if $ENABLE_API_KEY; then
+        API_KEY=$(RUST_LOG="" ./target/debug/mosaicod api-key create read write delete manage)
+
+        cat << EOF 
+
+    ##################################################################
+    #                                                                #
+    #                        API key MANAGEMENT                      #
+    #                                                                #
+    ##################################################################
+    #                                                                #
+    #  API KEY ${DIM}${API_KEY}${RESET}
+    #                                                                #
+    ##################################################################
+EOF
+    fi
+
+    title "running" "." ${BLUE}
+    ./target/debug/mosaicod run --port 6276 --local-store "${TEST_DIRECTORY}"
+    MOSAICOD_PID=$!
+
+    title "done" "#" ${GREEN}
+
+}
 
 
-title "development environment" "#" ${GREEN}
-
-title "setup" "-"
-echo " * MOSAICOD_DB_URL ${DIM}${MOSAICOD_DB_URL}${RESET}"
-echo " * DATABASE_URL    ${DIM}${DATABASE_URL}${RESET}"
-echo " * SQLX_OFFLINE    ${DIM}${SQLX_OFFLINE}${RESET}"
-cd ${DOCKER_PATH}
-title "docker" "." ${BLUE}
-docker compose up -d --wait 2> /dev/null
-echo "Started ${BOLD}docker/testing${RESET} compose file"
-
-title "mosaicod" "-"
-cd ${MOSAICOD_PATH}
-title "build" "." ${BLUE}
-cargo build
-
-title "running" "." ${BLUE}
-./target/debug/mosaicod run --port 6276 --local-store "${TEST_DIRECTORY}"
-MOSAICOD_PID=$!
-
-title "done" "#" ${GREEN}
+main "$@"
 
