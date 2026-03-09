@@ -1,8 +1,8 @@
 use super::Error;
 use bincode::{Decode, Encode};
 use mosaicod_core::types;
+use mosaicod_core::types::{SessionManifest, UuidError};
 use serde::{Deserialize, Serialize};
-
 // ////////////////////////////////////////////////////////////////////////////
 // GET FLIGHT INFO CMD
 // ////////////////////////////////////////////////////////////////////////////
@@ -66,6 +66,145 @@ pub fn do_put_cmd(v: &[u8]) -> Result<types::flight::DoPutCmd, super::Error> {
     serde_json::from_slice::<DoPutCmd>(v)
         .map_err(|e| super::Error::DeserializationError(e.to_string()))
         .map(|v| v.into())
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+// SEQUENCE APP METADATA
+// ////////////////////////////////////////////////////////////////////////////
+
+#[derive(Serialize, Deserialize)]
+pub struct SessionAppMetadata {
+    uuid: String,
+    creation_timestamp: Option<i64>,
+    completion_timestamp: Option<i64>,
+    topics: Vec<String>,
+}
+
+impl From<types::SessionManifest> for SessionAppMetadata {
+    fn from(value: types::SessionManifest) -> Self {
+        Self {
+            uuid: value.uuid.to_string(),
+            creation_timestamp: Some(value.creation_timestamp.as_i64()),
+            completion_timestamp: Some(value.completion_timestamp.as_i64()),
+            topics: value.topics.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl TryFrom<SessionAppMetadata> for types::SessionManifest {
+    type Error = super::Error;
+
+    fn try_from(value: SessionAppMetadata) -> Result<Self, Self::Error> {
+        let Some(creation_ts) = value.creation_timestamp else {
+            return Err(Error::DeserializationError(
+                "Missing creation timestamp in session manifest".to_string(),
+            ));
+        };
+
+        let Some(completion_ts) = value.completion_timestamp else {
+            return Err(Error::DeserializationError(
+                "Missing completion timestamp in session manifest".to_string(),
+            ));
+        };
+
+        Ok(Self {
+            uuid: value
+                .uuid
+                .parse()
+                .map_err(|e: UuidError| Error::DeserializationError(e.to_string()))?,
+            creation_timestamp: creation_ts.into(),
+            completion_timestamp: completion_ts.into(),
+            topics: value.topics.into_iter().map(Into::into).collect(),
+        })
+    }
+}
+
+/// Sequence app metadata sent when requesting flight info topics and sequences flights
+#[derive(Serialize, Deserialize)]
+pub struct SequenceAppMetadata {
+    creation_timestamp: i64,
+    resource_locator: String,
+    sessions: Vec<SessionAppMetadata>,
+}
+
+impl From<types::SequenceManifest> for SequenceAppMetadata {
+    fn from(value: types::SequenceManifest) -> Self {
+        let res = Self {
+            creation_timestamp: value.created_timestamp.as_i64(),
+            resource_locator: value.resource_locator.into(),
+            sessions: value
+                .sessions
+                .into_iter()
+                .map(|v| {
+                    v.1.map_or_else(
+                        || SessionAppMetadata {
+                            uuid: v.0.to_string(),
+                            creation_timestamp: None,
+                            completion_timestamp: None,
+                            topics: vec![],
+                        },
+                        |v| SessionAppMetadata {
+                            uuid: v.uuid.to_string(),
+                            creation_timestamp: Some(v.creation_timestamp.as_i64()),
+                            completion_timestamp: Some(v.completion_timestamp.as_i64()),
+                            topics: v.topics.into_iter().map(Into::into).collect(),
+                        },
+                    )
+                })
+                .collect(),
+        };
+
+        res
+    }
+}
+
+impl TryFrom<SequenceAppMetadata> for types::SequenceManifest {
+    type Error = super::Error;
+
+    fn try_from(value: SequenceAppMetadata) -> Result<Self, Self::Error> {
+        let mut res = Self {
+            created_timestamp: value.creation_timestamp.into(),
+            resource_locator: value.resource_locator.into(),
+            sessions: vec![],
+        };
+
+        for session in value.sessions {
+            let sm: SessionManifest = session.try_into()?; /*if session.creation_timestamp.is_some() {
+            if session.completion_timestamp.is_none() {
+            return Err(Error::DeserializationError(
+            "Missing completion timestamp in session app metadata".to_string(),
+            ));
+            }
+
+            Some(types::SessionManifest {
+            uuid: uuid.clone(),
+            creation_timestamp: session.creation_timestamp.unwrap().into(),
+            completion_timestamp: session.completion_timestamp.unwrap().into(),
+            topics: session.topics.into_iter().map(Into::into).collect(),
+            })
+            } else {
+            None
+            };*/
+
+            res.sessions.push((sm.uuid, Some(sm)));
+        }
+
+        return Ok(res);
+    }
+}
+
+impl From<SequenceAppMetadata> for bytes::Bytes {
+    fn from(value: SequenceAppMetadata) -> Self {
+        serde_json::to_vec(&value).unwrap_or_default().into()
+    }
+}
+
+impl TryFrom<bytes::Bytes> for SequenceAppMetadata {
+    type Error = Error;
+    fn try_from(value: bytes::Bytes) -> Result<Self, Error> {
+        serde_json::from_slice(value.as_ref())
+            .map_err(|e| Error::DeserializationError(e.to_string()))
+    }
 }
 
 // ////////////////////////////////////////////////////////////////////////////
