@@ -67,26 +67,6 @@ pub fn init_s3_store() -> Result<store::StoreRef, Error> {
     Ok(Arc::new(store::Store::try_from_s3_store(config)?))
 }
 
-pub fn init_logger(json_format: bool) {
-    use tracing_subscriber::prelude::*;
-
-    if json_format {
-        tracing_subscriber::FmtSubscriber::builder()
-            .with_max_level(tracing::Level::TRACE)
-            .json()
-            .finish()
-            .with(tracing_subscriber::EnvFilter::from_default_env())
-            .init();
-    } else {
-        tracing_subscriber::FmtSubscriber::builder()
-            .with_target(false)
-            .with_max_level(tracing::Level::TRACE)
-            .finish()
-            .with(tracing_subscriber::EnvFilter::from_default_env())
-            .init();
-    }
-}
-
 /// Load the defined env variables from the system.
 pub fn load_env_variables() -> Result<(), Error> {
     info!("loading environment variables");

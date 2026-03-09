@@ -97,9 +97,9 @@ mkdir -p "${TEST_DIRECTORY}"
 title "development environment" "#" ${GREEN}
 
 title "setup" "-"
-echo "MOSAICOD_DB_URL ${MOSAICOD_DB_URL}"
-echo "DATABASE_URL=${DATABASE_URL}"
-echo "SQLX_OFFLINE=${SQLX_OFFLINE}"
+echo " * MOSAICOD_DB_URL ${DIM}${MOSAICOD_DB_URL}${RESET}"
+echo " * DATABASE_URL    ${DIM}${DATABASE_URL}${RESET}"
+echo " * SQLX_OFFLINE    ${DIM}${SQLX_OFFLINE}${RESET}"
 cd ${DOCKER_PATH}
 title "docker" "." ${BLUE}
 docker compose up -d --wait 2> /dev/null
@@ -109,6 +109,8 @@ title "mosaicod" "-"
 cd ${MOSAICOD_PATH}
 title "build" "." ${BLUE}
 cargo build
+
+title "running" "." ${BLUE}
 ./target/debug/mosaicod run --port 6276 --local-store "${TEST_DIRECTORY}"
 MOSAICOD_PID=$!
 

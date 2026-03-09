@@ -10,7 +10,7 @@ use arrow_flight::{
 use futures::TryStreamExt;
 use futures::stream::BoxStream;
 use log::{error, trace, warn};
-use mosaicod_core::params;
+use mosaicod_core::{params, types};
 use mosaicod_db as db;
 use mosaicod_ext as ext;
 use mosaicod_marshal as marshal;
@@ -42,16 +42,45 @@ impl Default for ShutdownNotifier {
     }
 }
 
-pub struct Config {
-    pub host: String,
-    pub port: u16,
-
-    pub tls: Option<TlsConfig>,
-}
-
+#[derive(Clone)]
 pub struct TlsConfig {
     pub certificate_file: std::path::PathBuf,
     pub private_key_file: std::path::PathBuf,
+}
+
+#[derive(Clone)]
+pub struct Config {
+    pub host: String,
+
+    /// Default port
+    pub port: u16,
+
+    /// If this option is `Some` the server will try to enable TLS
+    tls: Option<TlsConfig>,
+
+    /// If this option is true the server will require API keys for every operation
+    enable_api_key_management: bool,
+}
+
+impl Config {
+    pub fn new(host: String, port: u16) -> Self {
+        Self {
+            host,
+            port,
+            tls: None,
+            enable_api_key_management: false,
+        }
+    }
+
+    /// Enable TLS
+    pub fn tls(&mut self, tls: TlsConfig) {
+        self.tls = Some(tls);
+    }
+
+    /// Enable API key management
+    pub fn enable_api_key_management(&mut self) {
+        self.enable_api_key_management = true;
+    }
 }
 
 /// Start mosaico Apache Arrow Flight service
@@ -63,23 +92,49 @@ pub async fn start(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("{}:{}", config.host, config.port).parse()?;
 
-    let service = MosaicodFlight::try_new(store, db.clone())?;
+    let mut flight_service = MosaicodFlight::try_new(store, db.clone())?;
 
-    let mut svc = FlightServiceServer::new(service);
+    if config.enable_api_key_management {
+        flight_service.enable_api_key_manegement();
+    }
 
-    let layer = tower::ServiceBuilder::new()
-        .layer(middleware::AuthLayer::new(db))
-        .into_inner();
+    let mut svc = FlightServiceServer::new(flight_service);
+
+    let mut auth_layer = middleware::AuthLayer::new(db);
+
+    // If API key management is disabled define a custom permission with all permissions
+    // and enable permissions passthrough in the auth middleware
+    if !config.enable_api_key_management {
+        auth_layer = auth_layer.with_permission_passthrough(
+            types::auth::Permissions::READ
+                | types::auth::Permissions::WRITE
+                | types::auth::Permissions::DELETE
+                | types::auth::Permissions::MANAGE,
+        );
+    }
+    let layer = tower::ServiceBuilder::new().layer(auth_layer).into_inner();
 
     let mut builder = Server::builder();
+
+    let mut tls_enabled = false;
 
     if let Some(tls) = config.tls {
         builder = builder.tls_config(ext::tonic::load_tls_config(
             &tls.certificate_file,
             &tls.private_key_file,
         )?)?;
-    } else {
-        warn!("TLS not enabled. Use the proper command line option to enable it.");
+        tls_enabled = true;
+    }
+
+    if !tls_enabled {
+        warn!("TLS is currently disabled. Traffic is being sent unencrypted.");
+    }
+    if !config.enable_api_key_management {
+        warn!("API key management is currently disabled.");
+    } else if !tls_enabled {
+        warn!(
+            "API key management is currently enabled but TLS is disabled. Sensitive credential are sent unenrypted and could be intercepted."
+        );
     }
 
     svc = svc
@@ -106,13 +161,24 @@ struct MosaicodFlight {
     store: store::StoreRef,
     db: db::Database,
     ts_gw: query::TimeseriesRef,
+
+    api_key_management: bool,
 }
 
 impl MosaicodFlight {
     pub fn try_new(store: store::StoreRef, db: db::Database) -> Result<Self, String> {
         let ts_gw = Arc::new(query::Timeseries::try_new(store.clone()).map_err(|e| e.to_string())?);
 
-        Ok(MosaicodFlight { store, db, ts_gw })
+        Ok(MosaicodFlight {
+            store,
+            db,
+            ts_gw,
+            api_key_management: false,
+        })
+    }
+
+    pub fn enable_api_key_manegement(&mut self) {
+        self.api_key_management = true;
     }
 
     pub fn context(&self) -> endpoint::Context {
@@ -144,7 +210,7 @@ impl FlightService for MosaicodFlight {
         request: Request<Criteria>,
     ) -> Result<Response<Self::ListFlightsStream>, Status> {
         let auth_ctx = auth_context(&request)?;
-        if !auth_ctx.api_key.permissions.is_read() {
+        if !auth_ctx.permissions().is_read() {
             Err(ServerError::Unauthorized)?;
         }
 
@@ -162,7 +228,7 @@ impl FlightService for MosaicodFlight {
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
         let auth_ctx = auth_context(&request)?;
-        if !auth_ctx.api_key.permissions.is_read() {
+        if !auth_ctx.permissions().is_read() {
             Err(ServerError::Unauthorized)?;
         }
 
@@ -198,7 +264,7 @@ impl FlightService for MosaicodFlight {
         request: Request<Ticket>,
     ) -> Result<Response<Self::DoGetStream>, Status> {
         let auth_ctx = auth_context(&request)?;
-        if !auth_ctx.api_key.permissions.is_read() {
+        if !auth_ctx.permissions().is_read() {
             Err(ServerError::Unauthorized)?;
         }
 
@@ -221,7 +287,7 @@ impl FlightService for MosaicodFlight {
         request: Request<Streaming<FlightData>>,
     ) -> Result<Response<Self::DoPutStream>, Status> {
         let auth_ctx = auth_context(&request)?;
-        if !auth_ctx.api_key.permissions.is_write() {
+        if !auth_ctx.permissions().is_write() {
             Err(ServerError::Unauthorized)?;
         }
 
@@ -246,7 +312,7 @@ impl FlightService for MosaicodFlight {
             .map_err(ServerError::from)
             .inspect_err(log_server_error)?;
 
-        let response = endpoint::do_action(self.context(), action, auth_ctx.api_key.permissions)
+        let response = endpoint::do_action(self.context(), action, auth_ctx.permissions())
             .await
             .inspect_err(log_server_error)?;
 

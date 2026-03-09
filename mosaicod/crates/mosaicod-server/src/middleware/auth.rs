@@ -13,17 +13,39 @@ use tower::{Layer, Service};
 /// Context used to pass auth data
 #[derive(Clone)]
 pub struct AuthContext {
-    pub api_key: types::ApiKey,
+    permissions: types::auth::Permissions,
+}
+
+impl AuthContext {
+    pub fn permissions(&self) -> &types::auth::Permissions {
+        &self.permissions
+    }
 }
 
 #[derive(Clone)]
 pub struct AuthLayer {
     db: db::Database,
+
+    /// If permissions passthrough is enabled no auth check is performed
+    /// and a fake permission token with all permission is
+    /// generated for every request.
+    permissions_passthrough: Option<types::auth::Permissions>,
 }
 
 impl AuthLayer {
     pub fn new(db: db::Database) -> Self {
-        Self { db }
+        Self {
+            db,
+            permissions_passthrough: None,
+        }
+    }
+
+    /// Enable auth passthrough. No internal check is
+    /// performed to validate api keys and a fake permissions
+    /// are generated to perform every action.
+    pub fn with_permission_passthrough(mut self, permissions: types::auth::Permissions) -> Self {
+        self.permissions_passthrough = Some(permissions);
+        self
     }
 }
 
@@ -34,6 +56,7 @@ impl<S> Layer<S> for AuthLayer {
         AuthMiddleware {
             inner: service,
             db: self.db.clone(),
+            permissions_passthrough: self.permissions_passthrough,
         }
     }
 }
@@ -42,6 +65,7 @@ impl<S> Layer<S> for AuthLayer {
 pub struct AuthMiddleware<S> {
     inner: S,
     db: db::Database,
+    permissions_passthrough: Option<types::auth::Permissions>,
 }
 
 type BoxFuture<'a, T> = Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
@@ -66,42 +90,54 @@ where
         let clone = self.inner.clone();
         let mut inner = std::mem::replace(&mut self.inner, clone);
 
-        let token = req
-            .headers()
-            .get("mosaico-api-key-token")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or_default()
-            .to_string();
+        if let Some(permissions) = self.permissions_passthrough {
+            // Inject permissions to bypass api key management
+            Box::pin(async move {
+                req.extensions_mut().insert(AuthContext { permissions });
 
-        let db = self.db.clone();
+                let response = inner.call(req).await?;
 
-        Box::pin(async move {
-            if token.is_empty() {
-                return Ok(to_http_error(ServerError::MissingApiKeyToken));
-            }
+                Ok(response)
+            })
+        } else {
+            let token = req
+                .headers()
+                .get("mosaico-api-key-token")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default()
+                .to_string();
 
-            let token: Result<types::auth::Token, types::auth::TokenError> = token.parse();
-            match token {
-                Ok(token) => {
-                    let fauth =
-                        match facade::Auth::try_from_fingerprint(token.fingerprint(), db).await {
-                            Ok(fauth) => fauth,
-                            Err(_) => {
-                                return Ok(to_http_error(ServerError::Unauthorized));
-                            }
-                        };
+            let db = self.db.clone();
 
-                    req.extensions_mut().insert(AuthContext {
-                        api_key: fauth.into_api_key(),
-                    });
-
-                    let response = inner.call(req).await?;
-
-                    Ok(response)
+            Box::pin(async move {
+                if token.is_empty() {
+                    return Ok(to_http_error(ServerError::MissingApiKeyToken));
                 }
-                Err(_) => Ok(to_http_error(ServerError::Unauthorized)),
-            }
-        })
+
+                let token: Result<types::auth::Token, types::auth::TokenError> = token.parse();
+                match token {
+                    Ok(token) => {
+                        let fauth =
+                            match facade::Auth::try_from_fingerprint(token.fingerprint(), db).await
+                            {
+                                Ok(fauth) => fauth,
+                                Err(_) => {
+                                    return Ok(to_http_error(ServerError::Unauthorized));
+                                }
+                            };
+
+                        req.extensions_mut().insert(AuthContext {
+                            permissions: fauth.into_api_key().permissions,
+                        });
+
+                        let response = inner.call(req).await?;
+
+                        Ok(response)
+                    }
+                    Err(_) => Ok(to_http_error(ServerError::Unauthorized)),
+                }
+            })
+        }
     }
 }
 

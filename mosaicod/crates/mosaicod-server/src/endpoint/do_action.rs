@@ -18,9 +18,9 @@ use mosaicod_marshal::{ActionRequest, ActionResponse};
 pub async fn do_action(
     ctx: Context,
     action: ActionRequest,
-    perm: Permissions,
+    perm: &Permissions,
 ) -> Result<ActionResponse, ServerError> {
-    if !has_permissions(&action, &perm) {
+    if !has_permissions(&action, perm) {
         return Err(ServerError::Unauthorized);
     }
 

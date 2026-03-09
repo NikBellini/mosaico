@@ -1,3 +1,4 @@
+use super::log;
 use colored::Colorize;
 use mosaicod_db as db;
 use mosaicod_store as store;
@@ -10,6 +11,13 @@ fn format_addr(is_loopback: bool, msg: String) {
         if is_loopback { "Local" } else { "Network" },
         msg,
     );
+}
+
+/// Enable or disable colors based on the log format
+pub fn set_colors(format: log::LogFormat) {
+    if matches!(format, log::LogFormat::Plain) {
+        colored::control::set_override(false);
+    }
 }
 
 pub fn startup_info(
