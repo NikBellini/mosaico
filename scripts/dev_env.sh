@@ -97,10 +97,13 @@ trap cleanup EXIT
 
 main() {
 
+    MOSAICOD_OPTS=""
+
     while [ $# -gt 0 ]; do
         case "$1" in 
             --api-key)
                 ENABLE_API_KEY=true
+                MOSAICOD_OPTS="--api-key"
                 shift
                 ;;
         esac
@@ -142,7 +145,7 @@ EOF
     fi
 
     title "running" "." ${BLUE}
-    ./target/debug/mosaicod run --port 6276 --local-store "${TEST_DIRECTORY}"
+    ./target/debug/mosaicod run --port 6276 --local-store "${TEST_DIRECTORY}" ${MOSAICOD_OPTS}
     MOSAICOD_PID=$!
 
     title "done" "#" ${GREEN}
