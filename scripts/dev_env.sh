@@ -20,9 +20,13 @@ MOSAICOD_DB_URL="postgresql://postgres:password@localhost:6543/mosaico"
 # is required to compile the code (and also we need to reinstall sqlx at each run).
 SQLX_OFFLINE=true
 
-# Enable is the server should start with api key management enabled. If this option is set to true
+# Spcifies if the server should start with api key management enabled. If this option is set to true
 # a defult API key will be generated. Use --api-key option to enable this from command line.
 ENABLE_API_KEY=false
+
+# Specifies if the server should start with TLS enabled. If this option is set to true 
+# the server will be configured with certificates from `mosaicod/tests/data` folder.
+ENABLE_TLS=false
 
 FILE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_DIR=$(readlink -f "${FILE_DIR}/..")
@@ -51,6 +55,24 @@ MAGENTA=$(tput setaf 5)
 RESET=$(tput sgr0)
 BOLD=$(tput bold)
 DIM=$(tput dim)
+
+show_help() {
+    cat << EOF
+Mosaico disposable development environment.
+
+This script generates a disposable development environment without data. 
+It is particularly useful for performing repeatable tests during development.
+
+Usage: dev_env.sh [OPTIONS]
+
+Options:
+    --api-key                   Start mosaicod with API key management and generate an admin
+                                key.
+    --tls                       Start mosaicod with TLS configured. Certificates can be found in 
+                                `mosaicod/tests/data` folder.
+    --help                      Show this help message
+EOF
+}
 
 error_handler() {
     echo "${RED}${BOLD}Ops, an error occurred. ${RESET}"
@@ -89,8 +111,6 @@ function cleanup() {
 
     cd ${PROJECT_DIR}/docker/testing
     docker compose down -v 2> /dev/null
-
-    title "db + storage deleted" "#" ${YELLOW}
 }
 
 trap cleanup EXIT
@@ -103,8 +123,24 @@ main() {
         case "$1" in 
             --api-key)
                 ENABLE_API_KEY=true
-                MOSAICOD_OPTS="--api-key"
+                MOSAICOD_OPTS="$MOSAICOD_OPTS --api-key"
                 shift
+                ;;
+            --tls)
+                ENABLE_TLS=true
+                MOSAICOD_OPTS="$MOSAICOD_OPTS --tls"
+                export MOSAICOD_TLS_CERT_FILE="${MOSAICOD_PATH}/tests/data/cert.pem"
+                export MOSAICOD_TLS_PRIVATE_KEY_FILE="${MOSAICOD_PATH}/tests/data/key.pem"
+                shift
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo "${RED}Unknown option: $1${RESET}"
+                show_help
+                exit 1
                 ;;
         esac
     done
@@ -130,15 +166,27 @@ main() {
     if $ENABLE_API_KEY; then
         API_KEY=$(RUST_LOG="" ./target/debug/mosaicod api-key create read write delete manage)
 
-        cat << EOF 
-
+cat << EOF 
     ##################################################################
     #                                                                #
-    #                        API key MANAGEMENT                      #
+    #                        API KEY MANAGEMENT                      #
     #                                                                #
-    ##################################################################
+    #----------------------------------------------------------------#
     #                                                                #
     #  API KEY ${DIM}${API_KEY}${RESET}
+    #                                                                #
+    ##################################################################
+EOF
+    fi
+
+    if $ENABLE_TLS; then
+cat << EOF
+    ##################################################################
+    #                                                                #
+    #                           TLS ENABLED                          #
+    #----------------------------------------------------------------#
+    #           Certificate for client can be found at               # 
+    #           `mosaicod/tests/data/ca.pem`                         #
     #                                                                #
     ##################################################################
 EOF

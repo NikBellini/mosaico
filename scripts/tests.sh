@@ -107,9 +107,9 @@ trap error_handler ERR
 # Show help
 show_help() {
     cat << EOF
-Mosaico Test Runner
+Mosaico rest runner.
 
-Usage: ./scripts/tests.sh [OPTIONS]
+Usage: tests.sh [OPTIONS]
 
 Options:
     --mosaicod                  Run mosaicod unit tests (requires Docker for PostgreSQL)
@@ -118,13 +118,6 @@ Options:
     --integration_with_tls      Run integration tests with TLS (requires Docker + mosaicod build)
     --all                       Run all tests (default)
     --help                      Show this help message
-
-Examples:
-    ./scripts/tests.sh --mosaicod               # Run only backend tests
-    ./scripts/tests.sh --sdk-python             # Run only Python SDK tests
-    ./scripts/tests.sh --integration            # Run only integration tests
-    ./scripts/tests.sh --integration_with_tls   # Run only integration tests with TLS
-    ./scripts/tests.sh                          # Run all tests
 EOF
 }
 
