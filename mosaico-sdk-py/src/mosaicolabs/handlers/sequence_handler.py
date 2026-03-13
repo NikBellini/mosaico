@@ -544,7 +544,8 @@ class SequenceHandler:
             deprecated_on_error = on_error
             on_error = SessionLevelErrorPolicy(on_error.value)
         else:
-            deprecated_on_error = None
+            # This is to maintain the same behaviour in the TopicWriter
+            deprecated_on_error = OnErrorPolicy(on_error.value)
 
         return SequenceUpdater(
             sequence_name=self._sequence.name,
