@@ -16,10 +16,10 @@ from mosaicolabs.models import Serializable
 from mosaicolabs.models.message import Message
 
 from ..comm.do_action import _do_action
-from ..enum import FlightAction, SessionLevelErrorPolicy
+from ..enum import FlightAction, OnErrorPolicy
 from ..helpers import pack_topic_resource_name
 from ..logging_config import get_logger
-from .config import SessionWriterConfig
+from .config import TopicWriterConfig
 from .helpers import _make_exception
 from .internal.topic_write_state import _TopicWriteState
 
@@ -59,8 +59,7 @@ class TopicWriter:
         sequence_name: str,
         client: fl.FlightClient,
         state: _TopicWriteState,
-        # config: TopicWriterConfig,
-        config: SessionWriterConfig,
+        config: TopicWriterConfig,
     ):
         """
         Internal constructor for TopicWriter.
@@ -116,8 +115,7 @@ class TopicWriter:
         """The name of the created sequence"""
         self._name: str = topic_name
         """The name of the new topic"""
-        # self._config: TopicWriterConfig = config
-        self._config: SessionWriterConfig = config
+        self._config: TopicWriterConfig = config
         """The config of the writer"""
         self._wrstate: _TopicWriteState = state
         """The actual writer object"""
@@ -131,8 +129,7 @@ class TopicWriter:
         client: fl.FlightClient,
         executor: Optional[ThreadPoolExecutor],
         ontology_type: Type[Serializable],
-        # config: TopicWriterConfig,
-        config: SessionWriterConfig,
+        config: TopicWriterConfig,
     ) -> "TopicWriter":
         """
         Internal Factory method to initialize an active TopicWriter.
@@ -238,7 +235,7 @@ class TopicWriter:
         if error_occurred:
             # Exit due to an error (original, cleanup, or finalize failure)
             try:
-                if self._config.on_error == SessionLevelErrorPolicy.Report:
+                if self._config.deprecated_on_error == OnErrorPolicy.Report:
                     self._error_report(str(exc_val))
             except Exception as e:
                 logger.exception(
@@ -257,7 +254,7 @@ class TopicWriter:
     def _handle_exception_and_raise(self, err: Exception, msg: str):
         """Helper to cleanup resources and re-raise exceptions with context."""
         try:
-            if self._config.on_error == SessionLevelErrorPolicy.Report:
+            if self._config.deprecated_on_error == OnErrorPolicy.Report:
                 self._error_report(str(err))
         except Exception as report_err:
             logger.error(f"Failed to report error: '{report_err}'")

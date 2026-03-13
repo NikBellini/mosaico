@@ -125,7 +125,7 @@ class SequenceUpdater(_BaseSessionWriter):
         topic_name: str,
         metadata: dict[str, Any],
         ontology_type: Type[Serializable],
-        on_error: TopicLevelErrorPolicy,
+        on_error: TopicLevelErrorPolicy = TopicLevelErrorPolicy.Finalize,
     ) -> Optional[TopicWriter]:
         """
         Creates a new topic within the active sequence.

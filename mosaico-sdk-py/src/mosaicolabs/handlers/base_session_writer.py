@@ -7,6 +7,7 @@ and distributes client resources (Connections, Executors) to individual Topics.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import asdict, fields
 from logging import Logger
 from typing import Any, Dict, Optional, Type
 
@@ -23,6 +24,8 @@ from mosaicolabs.enum import (
 )
 from mosaicolabs.handlers.config import (
     SessionWriterConfig,
+    TopicWriterConfig,
+    WriterConfig,
 )
 from mosaicolabs.handlers.helpers import (
     _make_exception,
@@ -400,7 +403,7 @@ class _BaseSessionWriter(ABC):
         topic_name: str,
         metadata: dict[str, Any],
         ontology_type: Type[Serializable],
-        on_error: TopicLevelErrorPolicy,
+        on_error: TopicLevelErrorPolicy = TopicLevelErrorPolicy.Finalize,
     ) -> Optional[TopicWriter]:
         """
         Creates a new topic within the active session.
@@ -480,14 +483,14 @@ class _BaseSessionWriter(ABC):
 
         # Copy the common values in TopicWriterConfig from SessionWriterConfig
         # and add the TopicLevelErrorPolicy
-        # session_writer_config_data = asdict(self._config)
-        # writer_config_fields = {field for field in fields(WriterConfig)}
-        # writer_config_data = {
-        #     key: value
-        #     for key, value in session_writer_config_data.items()
-        #     if key in writer_config_fields
-        # }
-        # topic_writer_config = TopicWriterConfig(on_error=on_error, **writer_config_data)
+        session_writer_config_data = asdict(self._config)
+        writer_config_fields = {field for field in fields(WriterConfig)}
+        writer_config_data = {
+            key: value
+            for key, value in session_writer_config_data.items()
+            if key in writer_config_fields
+        }
+        topic_writer_config = TopicWriterConfig(on_error=on_error, **writer_config_data)
 
         try:
             writer = TopicWriter._create(
@@ -497,8 +500,7 @@ class _BaseSessionWriter(ABC):
                 client=data_client,
                 executor=executor,
                 ontology_type=ontology_type,
-                # config=topic_writer_config,
-                config=self._config,
+                config=topic_writer_config,
             )
             self._topic_writers[topic_name] = writer
 

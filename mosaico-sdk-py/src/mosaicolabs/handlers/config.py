@@ -6,8 +6,9 @@ of the writing process, including error handling policies and batching limits.
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
-from ..enum import SessionLevelErrorPolicy, TopicLevelErrorPolicy
+from ..enum import OnErrorPolicy, SessionLevelErrorPolicy, TopicLevelErrorPolicy
 
 
 @dataclass
@@ -42,6 +43,17 @@ class WriterConfig:
     A flush is triggered whenever **either** this record limit or the 
     `max_batch_size_bytes` limit is reached, ensuring that data is transmitted 
     regularly even for topics with very small individual records.
+    """
+
+    deprecated_on_error: Optional[OnErrorPolicy]
+    """
+    Determines the terminal behavior when an exception occurs during the ingestion 
+    lifecycle.
+    
+    * If set to [`OnErrorPolicy.Delete`][mosaicolabs.enum.OnErrorPolicy.Delete], the 
+        system purges all data from the failed sequence.
+    * If set to [`OnErrorPolicy.Report`][mosaicolabs.enum.OnErrorPolicy.Report], the 
+        system retains the partial data in an **unlocked** state for debugging.
     """
 
 
@@ -90,3 +102,14 @@ class TopicWriterConfig(WriterConfig):
     """
 
     on_error: TopicLevelErrorPolicy
+    """
+    Determines the terminal behavior when an exception occurs during the ingestion 
+    lifecycle.
+    
+    * If set to [`TopicLevelErrorPolicy.Finalize`][mosaicolabs.enum.TopicLevelErrorPolicy.Finalize], the 
+        system notifies server and close the topic (`is_active = False`).
+    * If set to [`TopicLevelErrorPolicy.Ignore`][mosaicolabs.enum.TopicLevelErrorPolicy.Ignore], the 
+        system notifies server but keep topic open for future `push()` calls.
+    * If set to [`TopicLevelErrorPolicy.Raise`][mosaicolabs.enum.TopicLevelErrorPolicy.Raise], the 
+        system propagates exception to trigger session-level policy.
+    """
