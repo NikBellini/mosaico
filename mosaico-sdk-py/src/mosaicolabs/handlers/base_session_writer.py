@@ -484,11 +484,11 @@ class _BaseSessionWriter(ABC):
         # Copy the common values in TopicWriterConfig from SessionWriterConfig
         # and add the TopicLevelErrorPolicy
         session_writer_config_data = asdict(self._config)
-        writer_config_fields = {field for field in fields(WriterConfig)}
+        writer_config_fields = {field.name for field in fields(WriterConfig)}
         writer_config_data = {
-            key: value
-            for key, value in session_writer_config_data.items()
-            if key in writer_config_fields
+            k: v
+            for k, v in session_writer_config_data.items()
+            if k in writer_config_fields
         }
         topic_writer_config = TopicWriterConfig(on_error=on_error, **writer_config_data)
 
