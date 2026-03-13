@@ -19,7 +19,7 @@ from ..comm.do_action import _do_action
 from ..enum import FlightAction, SessionLevelErrorPolicy
 from ..helpers import pack_topic_resource_name
 from ..logging_config import get_logger
-from .config import TopicWriterConfig
+from .config import SessionWriterConfig
 from .helpers import _make_exception
 from .internal.topic_write_state import _TopicWriteState
 
@@ -59,7 +59,8 @@ class TopicWriter:
         sequence_name: str,
         client: fl.FlightClient,
         state: _TopicWriteState,
-        config: TopicWriterConfig,
+        # config: TopicWriterConfig,
+        config: SessionWriterConfig,
     ):
         """
         Internal constructor for TopicWriter.
@@ -115,7 +116,8 @@ class TopicWriter:
         """The name of the created sequence"""
         self._name: str = topic_name
         """The name of the new topic"""
-        self._config: TopicWriterConfig = config
+        # self._config: TopicWriterConfig = config
+        self._config: SessionWriterConfig = config
         """The config of the writer"""
         self._wrstate: _TopicWriteState = state
         """The actual writer object"""
@@ -129,7 +131,8 @@ class TopicWriter:
         client: fl.FlightClient,
         executor: Optional[ThreadPoolExecutor],
         ontology_type: Type[Serializable],
-        config: TopicWriterConfig,
+        # config: TopicWriterConfig,
+        config: SessionWriterConfig,
     ) -> "TopicWriter":
         """
         Internal Factory method to initialize an active TopicWriter.
