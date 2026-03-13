@@ -113,19 +113,10 @@ class ROSInjectionConfig:
     See [`rosbags.typesys.Stores`](https://ternaris.gitlab.io/rosbags/topics/typesys.html#type-stores).
     """
 
-    _on_error: SessionLevelErrorPolicy = SessionLevelErrorPolicy.Report
+    on_error: Union[SessionLevelErrorPolicy, OnErrorPolicy] = (
+        SessionLevelErrorPolicy.Report
+    )
     """the `SequenceWriter` `on_error` behavior when a sequence write fails (Report vs Delete)"""
-
-    @property
-    def on_error(self):
-        return self._on_error
-
-    @on_error.setter
-    def on_error(self, value: Union[SessionLevelErrorPolicy, OnErrorPolicy]):
-        if isinstance(value, OnErrorPolicy):
-            self._on_error = SessionLevelErrorPolicy(value.value)
-        else:
-            self._on_error = value
 
     custom_msgs: Optional[List[Tuple[str, Path, Optional[Stores]]]] = None
     """
