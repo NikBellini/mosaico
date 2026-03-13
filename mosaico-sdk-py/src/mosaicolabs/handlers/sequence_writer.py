@@ -13,11 +13,16 @@ import pyarrow.flight as fl
 from ..comm.connection import _ConnectionPool
 from ..comm.do_action import _do_action
 from ..comm.executor_pool import _ExecutorPool
-from ..enum import FlightAction, SequenceStatus, SessionLevelErrorPolicy
+from ..enum import (
+    FlightAction,
+    SequenceStatus,
+    SessionLevelErrorPolicy,
+    TopicLevelErrorPolicy,
+)
 from ..logging_config import get_logger
 from ..models import Serializable
 from .base_session_writer import _BaseSessionWriter
-from .config import WriterConfig
+from .config import SessionWriterConfig
 from .helpers import _make_exception, _validate_metadata, _validate_sequence_name
 from .topic_writer import TopicWriter
 
@@ -61,7 +66,7 @@ class SequenceWriter(_BaseSessionWriter):
         connection_pool: Optional[_ConnectionPool],
         executor_pool: Optional[_ExecutorPool],
         metadata: dict[str, Any],
-        config: WriterConfig,
+        config: SessionWriterConfig,
     ):
         """
         Internal constructor for SequenceWriter.
@@ -216,6 +221,7 @@ class SequenceWriter(_BaseSessionWriter):
         topic_name: str,
         metadata: dict[str, Any],
         ontology_type: Type[Serializable],
+        on_error: TopicLevelErrorPolicy,
     ) -> Optional[TopicWriter]:
         """
         Creates a new topic within the active sequence.
@@ -228,6 +234,7 @@ class SequenceWriter(_BaseSessionWriter):
             topic_name: The relative name of the new topic.
             metadata: Topic-specific user metadata.
             ontology_type: The `Serializable` data model class defining the topic's schema.
+            on_error: The error policy to use in the `TopicWriter`.
 
         Returns:
             A `TopicWriter` instance configured for parallel ingestion, or `None` if creation fails.
@@ -297,6 +304,7 @@ class SequenceWriter(_BaseSessionWriter):
             topic_name=topic_name,
             metadata=metadata,
             ontology_type=ontology_type,
+            on_error=on_error,
         )
 
     @property

@@ -18,7 +18,7 @@ from mosaicolabs.models.query.protocols import QueryableProtocol
 
 from ..enum import FlightAction, OnErrorPolicy, SessionLevelErrorPolicy
 from ..handlers import SequenceHandler, SequenceWriter, TopicHandler
-from ..handlers.config import WriterConfig
+from ..handlers.config import SessionWriterConfig
 from ..helpers import pack_topic_resource_name
 from ..logging_config import get_logger
 from .connection import (
@@ -544,7 +544,7 @@ class MosaicoClient:
             connection_pool=self._connection_pool,
             executor_pool=self._executor_pool,
             metadata=metadata,
-            config=WriterConfig(
+            config=SessionWriterConfig(
                 on_error=on_error,
                 max_batch_size_bytes=max_batch_size_bytes,
                 max_batch_size_records=max_batch_size_records,

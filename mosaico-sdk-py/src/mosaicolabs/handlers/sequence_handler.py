@@ -24,7 +24,7 @@ from ..enum import FlightAction, OnErrorPolicy, SessionLevelErrorPolicy
 from ..helpers import sanitize_sequence_name
 from ..logging_config import get_logger
 from ..models.platform import Sequence
-from .config import WriterConfig
+from .config import SessionWriterConfig
 from .endpoints import TopicParsingError, TopicResourceManifest
 from .sequence_reader import SequenceDataStreamer
 from .sequence_updater import SequenceUpdater
@@ -548,7 +548,7 @@ class SequenceHandler:
             client=self._fl_client,
             connection_pool=self._connection_pool_allocator(),
             executor_pool=self._executor_pool_allocator(),
-            config=WriterConfig(
+            config=SessionWriterConfig(
                 on_error=on_error,
                 max_batch_size_bytes=max_batch_size_bytes,
                 max_batch_size_records=max_batch_size_records,
