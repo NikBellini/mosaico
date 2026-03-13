@@ -536,11 +536,7 @@ class MosaicoClient:
         self._init_pools()
 
         if isinstance(on_error, OnErrorPolicy):
-            deprecated_on_error = on_error
             on_error = SessionLevelErrorPolicy(on_error.value)
-        else:
-            # This is to maintain the same behaviour in the TopicWriter
-            deprecated_on_error = OnErrorPolicy(on_error.value)
 
         return SequenceWriter(
             sequence_name=sequence_name,
@@ -552,7 +548,6 @@ class MosaicoClient:
                 on_error=on_error,
                 max_batch_size_bytes=max_batch_size_bytes,
                 max_batch_size_records=max_batch_size_records,
-                deprecated_on_error=deprecated_on_error,
             ),
         )
 

@@ -7,7 +7,7 @@ of the writing process, including error handling policies and batching limits.
 
 from dataclasses import dataclass
 
-from ..enum import OnErrorPolicy, SessionLevelErrorPolicy, TopicLevelErrorPolicy
+from ..enum import SessionLevelErrorPolicy, TopicLevelErrorPolicy
 
 
 @dataclass
@@ -42,19 +42,6 @@ class WriterConfig:
     A flush is triggered whenever **either** this record limit or the 
     `max_batch_size_bytes` limit is reached, ensuring that data is transmitted 
     regularly even for topics with very small individual records.
-    """
-
-    # deprecated_on_error: Optional[OnErrorPolicy]
-    # TODO: Make this optional once implemented the new behaviour for the TopicWriter
-    deprecated_on_error: OnErrorPolicy
-    """
-    Determines the terminal behavior when an exception occurs during the ingestion 
-    lifecycle.
-    
-    * If set to [`OnErrorPolicy.Delete`][mosaicolabs.enum.OnErrorPolicy.Delete], the 
-        system purges all data from the failed sequence.
-    * If set to [`OnErrorPolicy.Report`][mosaicolabs.enum.OnErrorPolicy.Report], the 
-        system retains the partial data in an **unlocked** state for debugging.
     """
 
 
