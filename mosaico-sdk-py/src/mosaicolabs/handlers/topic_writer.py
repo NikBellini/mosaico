@@ -16,7 +16,7 @@ from mosaicolabs.models import Serializable
 from mosaicolabs.models.message import Message
 
 from ..comm.do_action import _do_action
-from ..enum import FlightAction, OnErrorPolicy
+from ..enum import FlightAction, SessionLevelErrorPolicy
 from ..helpers import pack_topic_resource_name
 from ..logging_config import get_logger
 from .config import WriterConfig
@@ -217,7 +217,7 @@ class TopicWriter:
         Context manager exit.
 
         Guarantees cleanup of the Flight stream. If an exception occurred within
-        the block, it triggers the configured `OnErrorPolicy` (e.g., reporting the error).
+        the block, it triggers the configured `SessionLevelErrorPolicy` (e.g., reporting the error).
         Exceptions from the with-block are always propagated.
         """
         error_occurred = exc_type is not None
@@ -235,7 +235,7 @@ class TopicWriter:
         if error_occurred:
             # Exit due to an error (original, cleanup, or finalize failure)
             try:
-                if self._config.on_error == OnErrorPolicy.Report:
+                if self._config.on_error == SessionLevelErrorPolicy.Report:
                     self._error_report(str(exc_val))
             except Exception as e:
                 logger.exception(
@@ -254,7 +254,7 @@ class TopicWriter:
     def _handle_exception_and_raise(self, err: Exception, msg: str):
         """Helper to cleanup resources and re-raise exceptions with context."""
         try:
-            if self._config.on_error == OnErrorPolicy.Report:
+            if self._config.on_error == SessionLevelErrorPolicy.Report:
                 self._error_report(str(err))
         except Exception as report_err:
             logger.error(f"Failed to report error: '{report_err}'")

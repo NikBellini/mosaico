@@ -39,7 +39,7 @@ class SequenceUpdater(_BaseSessionWriter):
     Important: Usage Pattern
         This class **must** be used within a `with` statement (Context Manager).
         The context entry triggers sequence registration on the server, while the exit handles
-        automatic finalization or error cleanup based on the configured `OnErrorPolicy`.
+        automatic finalization or error cleanup based on the configured `SessionLevelErrorPolicy`.
 
     Important: Obtaining a Writer
         Do not instantiate this class directly. Use the
@@ -66,7 +66,7 @@ class SequenceUpdater(_BaseSessionWriter):
 
         Example:
             ```python
-            from mosaicolabs import MosaicoClient, OnErrorPolicy
+            from mosaicolabs import MosaicoClient, SessionLevelErrorPolicy
 
             # Open the connection with the Mosaico Client
             with MosaicoClient.connect("localhost", 6726) as client:
@@ -74,7 +74,7 @@ class SequenceUpdater(_BaseSessionWriter):
                 seq_handler = client.sequence_handler("mission_log_042")
                 # Update the sequence
                 with seq_handler.update( # (1)!
-                    on_error = OnErrorPolicy.Delete # Default
+                    on_error = SessionLevelErrorPolicy.Delete
                     ) as seq_updater:
                         # Start creating topics and pushing data
                         # (2)!

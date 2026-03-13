@@ -7,7 +7,7 @@ of the writing process, including error handling policies and batching limits.
 
 from dataclasses import dataclass
 
-from ..enum import OnErrorPolicy
+from ..enum import SessionLevelErrorPolicy
 
 
 @dataclass
@@ -27,14 +27,14 @@ class WriterConfig:
     [`TopicWriter`][mosaicolabs.handlers.TopicWriter].
     """
 
-    on_error: OnErrorPolicy
+    on_error: SessionLevelErrorPolicy
     """
     Determines the terminal behavior when an exception occurs during the ingestion 
     lifecycle.
     
-    * If set to [`OnErrorPolicy.Delete`][mosaicolabs.enum.OnErrorPolicy.Delete], the 
+    * If set to [`SessionLevelErrorPolicy.Delete`][mosaicolabs.enum.SessionLevelErrorPolicy.Delete], the 
         system purges all data from the failed sequence.
-    * If set to [`OnErrorPolicy.Report`][mosaicolabs.enum.OnErrorPolicy.Report], the 
+    * If set to [`SessionLevelErrorPolicy.Report`][mosaicolabs.enum.SessionLevelErrorPolicy.Report], the 
         system retains the partial data in an **unlocked** state for debugging.
     """
 

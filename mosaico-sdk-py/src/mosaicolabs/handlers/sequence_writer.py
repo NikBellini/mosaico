@@ -13,7 +13,7 @@ import pyarrow.flight as fl
 from ..comm.connection import _ConnectionPool
 from ..comm.do_action import _do_action
 from ..comm.executor_pool import _ExecutorPool
-from ..enum import FlightAction, OnErrorPolicy, SequenceStatus
+from ..enum import FlightAction, SequenceStatus, SessionLevelErrorPolicy
 from ..logging_config import get_logger
 from ..models import Serializable
 from .base_session_writer import _BaseSessionWriter
@@ -44,7 +44,7 @@ class SequenceWriter(_BaseSessionWriter):
     Important: Usage Pattern
         This class **must** be used within a `with` statement (Context Manager).
         The context entry triggers sequence registration on the server, while the exit handles
-        automatic finalization or error cleanup based on the configured `OnErrorPolicy`.
+        automatic finalization or error cleanup based on the configured `SessionLevelErrorPolicy`.
 
     Important: Obtaining a Writer
         Do not instantiate this class directly. Use the
@@ -72,7 +72,7 @@ class SequenceWriter(_BaseSessionWriter):
 
         Example:
             ```python
-            from mosaicolabs import MosaicoClient, OnErrorPolicy
+            from mosaicolabs import MosaicoClient, SessionLevelErrorPolicy
 
             # Open the connection with the Mosaico Client
             with MosaicoClient.connect("localhost", 6726) as client:
@@ -96,7 +96,7 @@ class SequenceWriter(_BaseSessionWriter):
                             },
                         },
                     }
-                    on_error = OnErrorPolicy.Delete # Default
+                    on_error = SessionLevelErrorPolicy.Delete
                     ) as seq_writer:
                         # Start creating topics and pushing data
                         # (2)!
@@ -180,10 +180,13 @@ class SequenceWriter(_BaseSessionWriter):
         super()._on_context_exit(exc_type, exc_val, exc_tb)
 
         # Apply policy upon exception caught in the context
-        if exc_type is not None and self._config.on_error == OnErrorPolicy.Delete:
+        if (
+            exc_type is not None
+            and self._config.on_error == SessionLevelErrorPolicy.Delete
+        ):
             self._logger.error(
                 f"Sequence writer for sequence {self._name} caught exception: '{exc_val}'."
-                f"Triggering `OnErrorPolicy.Delete`."
+                f"Triggering `SessionLevelErrorPolicy.Delete`."
             )
             # Delete the sequence
             self._delete()

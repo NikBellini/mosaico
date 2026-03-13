@@ -15,7 +15,7 @@ import pyarrow.flight as fl
 from mosaicolabs.comm.connection import _ConnectionPool
 from mosaicolabs.comm.do_action import _do_action, _DoActionResponseUUID
 from mosaicolabs.comm.executor_pool import _ExecutorPool
-from mosaicolabs.enum import FlightAction, OnErrorPolicy, SessionStatus
+from mosaicolabs.enum import FlightAction, SessionLevelErrorPolicy, SessionStatus
 from mosaicolabs.handlers.config import WriterConfig
 from mosaicolabs.handlers.helpers import (
     _make_exception,
@@ -197,7 +197,7 @@ class _BaseSessionWriter(ABC):
                 out_exc = e
 
             # Apply the session-level error policy
-            if self._config.on_error == OnErrorPolicy.Delete:
+            if self._config.on_error == SessionLevelErrorPolicy.Delete:
                 self._abort()
             else:
                 self._error_report(str(out_exc))
