@@ -6,7 +6,6 @@ of the writing process, including error handling policies and batching limits.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from ..enum import OnErrorPolicy, SessionLevelErrorPolicy, TopicLevelErrorPolicy
 
@@ -45,7 +44,9 @@ class WriterConfig:
     regularly even for topics with very small individual records.
     """
 
-    deprecated_on_error: Optional[OnErrorPolicy]
+    # deprecated_on_error: Optional[OnErrorPolicy]
+    # TODO: Make this optional once implemented the new behaviour for the TopicWriter
+    deprecated_on_error: OnErrorPolicy
     """
     Determines the terminal behavior when an exception occurs during the ingestion 
     lifecycle.
