@@ -536,7 +536,10 @@ class MosaicoClient:
         self._init_pools()
 
         if isinstance(on_error, OnErrorPolicy):
+            deprecated_on_error = on_error
             on_error = SessionLevelErrorPolicy(on_error.value)
+        else:
+            deprecated_on_error = None
 
         return SequenceWriter(
             sequence_name=sequence_name,
@@ -548,6 +551,7 @@ class MosaicoClient:
                 on_error=on_error,
                 max_batch_size_bytes=max_batch_size_bytes,
                 max_batch_size_records=max_batch_size_records,
+                deprecated_on_error=deprecated_on_error,
             ),
         )
 

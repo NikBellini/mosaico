@@ -541,7 +541,10 @@ class SequenceHandler:
         )
 
         if isinstance(on_error, OnErrorPolicy):
+            deprecated_on_error = on_error
             on_error = SessionLevelErrorPolicy(on_error.value)
+        else:
+            deprecated_on_error = None
 
         return SequenceUpdater(
             sequence_name=self._sequence.name,
@@ -552,6 +555,7 @@ class SequenceHandler:
                 on_error=on_error,
                 max_batch_size_bytes=max_batch_size_bytes,
                 max_batch_size_records=max_batch_size_records,
+                deprecated_on_error=deprecated_on_error,
             ),
         )
 
