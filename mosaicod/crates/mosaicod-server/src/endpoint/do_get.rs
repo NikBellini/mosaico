@@ -8,7 +8,7 @@ use arrow_flight::{
 };
 use futures::TryStreamExt;
 use log::{debug, info, trace};
-use mosaicod_core::{self as core, params, types};
+use mosaicod_core::{self as core, params};
 use mosaicod_facade as facade;
 use mosaicod_marshal as marshal;
 
@@ -18,9 +18,16 @@ pub async fn do_get(ctx: &facade::Context, ticket: Ticket) -> Result<FlightDataE
     info!("requesting data for ticket `{}`", ticket.locator);
 
     // Create topic handle
-    let topic_locator = ticket.locator.parse::<types::TopicLocator>()?;
+    let topic_handle = facade::topic::Handle::try_from_locator(ctx, ticket.locator).await?;
 
-    let topic_handle = facade::topic::Handle::try_from_locator(ctx, topic_locator).await?;
+    // If topic is empty (no data has been loaded yet), do_get must fail.
+    let topic_status = facade::topic::status(ctx, &topic_handle).await?;
+
+    if topic_status == facade::topic::Status::Empty {
+        Err(core::Error::missing_doput(
+            topic_handle.locator().to_string(),
+        ))?
+    }
 
     // Read metadata from topic
     let metadata = facade::topic::metadata(ctx, &topic_handle).await?;
@@ -29,6 +36,9 @@ pub async fn do_get(ctx: &facade::Context, ticket: Ticket) -> Result<FlightDataE
 
     let batch_size = facade::topic::compute_optimal_batch_size(ctx, &topic_handle).await?;
 
+    // Here path_in_store should be already set and available,
+    // otherwise the check on the topic status should have failed.
+    // That's why an internal error is returned.
     let path_in_store = topic_handle
         .path_in_store()
         .ok_or(core::error::Error::internal(Some(format!(

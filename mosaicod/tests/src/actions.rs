@@ -1,10 +1,16 @@
 use super::common::{ActionResponse, Client};
 use arrow::array::RecordBatch;
+use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::{Action, FlightDescriptor, FlightInfo, PutResult};
 use futures::StreamExt;
+use futures::TryStreamExt;
 use mosaicod_core::types;
 use mosaicod_ext as ext;
+
+use arrow_flight::Ticket;
+use mosaicod_marshal as marshal;
+
 use tonic::Streaming;
 /// Create a new sequence.
 /// Returns the `key` of the newly created sequence, this key is required to perform action
@@ -78,7 +84,7 @@ pub async fn sequence_delete(client: &mut Client, locator: &str) -> Result<(), t
 pub async fn session_create(
     client: &mut Client,
     sequence_name: &str,
-) -> Result<types::Uuid, tonic::Status> {
+) -> Result<(types::SessionLocator, types::Uuid), tonic::Status> {
     let action = Action {
         r#type: "session_create".to_owned(),
         body: format!(
@@ -96,20 +102,28 @@ pub async fn session_create(
 
     let mut stream = client.do_action(action).await?.into_inner();
 
-    let mut key: Option<types::Uuid> = None;
+    let mut key: Option<(types::SessionLocator, types::Uuid)> = None;
 
     while let Some(result) = stream.message().await? {
         dbg!(&result);
         let r = ActionResponse::from_body(&result.body);
         assert_eq!(r.action, "session_create");
 
-        let uuid: types::Uuid = r.response["uuid"]
+        let locator = r.response["locator"]
+            .as_str()
+            .ok_or_else(|| tonic::Status::internal("locator is not a string"))?
+            .parse::<types::SessionLocator>()
+            .map_err(|e| {
+                tonic::Status::internal(format!("Failed to parse session locator: {e}"))
+            })?;
+
+        let uuid = r.response["uuid"]
             .as_str()
             .ok_or_else(|| tonic::Status::internal("uuid is not a string"))?
             .parse::<types::Uuid>()
-            .map_err(|e| tonic::Status::internal(format!("Failed to parse uuid: {e}")))?;
+            .map_err(|e| tonic::Status::internal(format!("Failed to parse session uuid: {e}")))?;
 
-        key = Some(uuid);
+        key = Some((locator, uuid));
     }
 
     key.ok_or_else(|| tonic::Status::internal("Unable to return key"))
@@ -150,17 +164,17 @@ pub async fn session_finalize(
 /// Send an action to delete the current session
 pub async fn session_delete(
     client: &mut Client,
-    session_uuid: &types::Uuid,
+    session_locator: &types::SessionLocator,
 ) -> Result<(), tonic::Status> {
     let action = Action {
         r#type: "session_delete".to_owned(),
         body: format!(
             r#"
         {{
-            "session_uuid": "{}"
+            "locator": "{}"
         }}
         "#,
-            session_uuid
+            session_locator
         )
         .into(),
     };
@@ -287,6 +301,40 @@ pub async fn do_put(
         .map(|v| v.unwrap());
 
     client.do_put(flight_data_stream).await
+}
+
+pub async fn do_get(
+    client: &mut Client,
+    topic_name: &str,
+) -> Result<Vec<RecordBatch>, tonic::Status> {
+    let locator = topic_name.parse().unwrap();
+    let ticket_payload = types::flight::TicketTopic {
+        locator,
+        timestamp_range: None,
+    };
+
+    let ticket = Ticket {
+        ticket: marshal::flight::ticket_topic_to_binary(ticket_payload)
+            .unwrap()
+            .into(),
+    };
+
+    do_get_with_ticket(client, ticket).await
+}
+
+pub async fn do_get_with_ticket(
+    client: &mut Client,
+    ticket: arrow_flight::Ticket,
+) -> Result<Vec<RecordBatch>, tonic::Status> {
+    let stream = client.do_get(ticket).await?.into_inner();
+
+    let record_batch_stream =
+        FlightRecordBatchStream::new_from_flight_data(stream.map_err(|e| e.into()));
+
+    record_batch_stream
+        .try_collect::<Vec<_>>()
+        .await
+        .map_err(|e| tonic::Status::internal(format!("do_get decode error: {e}")))
 }
 
 pub async fn server_version(client: &mut Client) -> Result<(), tonic::Status> {
@@ -636,7 +684,7 @@ pub async fn setup_topic_with_notifications(
     notifications_size: usize,
 ) -> Result<(), tonic::Status> {
     sequence_create(client, sequence_name, None).await.unwrap();
-    let session_uuid = session_create(client, sequence_name).await.unwrap();
+    let (_, session_uuid) = session_create(client, sequence_name).await.unwrap();
     let topic_uuid = topic_create(client, &session_uuid, topic_name, None)
         .await
         .unwrap();
