@@ -17,6 +17,7 @@ from mosaicolabs.models.sensors import (
     CompressedImage,
     GPSStatus,
     Image,
+    ImageFormat,
     Joy,
     Magnetometer,
     NMEASentence,
@@ -760,7 +761,39 @@ class CompressedImageAdapter(ROSAdapterBase[CompressedImage]):
         """
         _validate_msgdata(cls, ros_data)
 
-        return CompressedImage(data=bytes(ros_data["data"]), format=ros_data["format"])
+        # Please check doc how format is constructed
+        # https://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/CompressedImage.html
+        # or https://docs.ros2.org/foxy/api/sensor_msgs/msg/CompressedImage.html
+        img_format = ros_data["format"]
+
+        if not img_format:  # In case nothig is specified -> PNG
+            return CompressedImage(data=bytes(ros_data["data"]), format=ImageFormat.PNG)
+
+        parts = img_format.split()
+
+        if len(parts) == 1:  # only codec present (i.e. 'png', 'h264', 'jpeg'...)
+            codec = parts[0]
+        else:
+            is_depth = "compressedDepth" in parts
+            is_color = "compressed" in parts
+
+            if is_depth and is_color:
+                raise ValueError(
+                    f"Ambiguous CompressedImage format: both 'compressed' and 'compressedDepth' found in {img_format!r}"
+                )
+            if not is_depth and not is_color:
+                raise ValueError(
+                    f"Unrecognized CompressedImage format string: {img_format!r}"
+                )
+
+            # compressed_image_transport: "ORIG_PIXFMT; CODEC compressed [COMPRESSED_PIXFMT]"
+            # compressed_depth_image_transport: "ORIG_PIXFMT; compressedDepth CODEC"
+            if is_color:
+                codec = parts[1] if len(parts) > 1 else "png"
+            else:
+                codec = parts[2] if len(parts) > 2 else "png"
+
+        return CompressedImage(data=bytes(ros_data["data"]), format=codec)
 
     @classmethod
     def schema_metadata(cls, ros_data: dict, **kwargs: Any) -> Optional[dict]:
