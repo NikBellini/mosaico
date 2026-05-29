@@ -20,15 +20,15 @@ from mosaicolabs import (
     Point3d,
     Polygon,
     Pose,
-    Quaternion,
-    RobotPath,
     Pressure,
+    Quaternion,
     RobotJoint,
+    RobotPath,
+    Temperature,
     Transform,
     Vector2d,
     Vector3d,
     Velocity,
-    Temperature,
     futures,
 )
 from mosaicolabs.ros_bridge.data_ontology import (
@@ -386,4 +386,3 @@ def assert_path(path: RobotPath, ros_msg):
 
     for pose, pose_stamped_ros in zip(path.poses, ros_msg["poses"]):
         assert_pose(pose, pose_stamped_ros["pose"])
-

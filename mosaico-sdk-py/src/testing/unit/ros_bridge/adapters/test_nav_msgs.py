@@ -6,8 +6,8 @@ from rosbags.typesys.stores import Stores, Typestore, get_typestore
 from mosaicolabs import (
     Message,
     MotionState,
-    RobotPath,
     Pose,
+    RobotPath,
     Time,
     Velocity,
 )
@@ -171,7 +171,7 @@ def path_rosmsg(ros_header, robot_path: RobotPath):
             "poses": [
                 {
                     "header": ros_header,
-                    "pose": pose.model_dump(exclude={"covariance", "covariance_type"})
+                    "pose": pose.model_dump(exclude={"covariance", "covariance_type"}),
                 }
                 for pose in robot_path.poses
             ],
