@@ -1,6 +1,7 @@
 from typing import Any, Optional, Tuple, Type
 
-from mosaicolabs import Message, MotionState, Point3d, Time
+from mosaicolabs import Message, Time
+from mosaicolabs.models.data import MotionState, Point3d
 from mosaicolabs.models.futures import (
     GridCells,
     MapMetadata,
