@@ -37,5 +37,4 @@ from .kinematics import (
 )
 from .map_metadata import MapMetadata as MapMetadata
 from .occupancy_grid import OccupancyGrid as OccupancyGrid
-from .path import Path as Path
 from .roi import ROI as ROI

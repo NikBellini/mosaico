@@ -434,7 +434,6 @@ While the underlying `rosbags` library supports the majority of standard ROS 2 b
   | [`geometry_msgs/msg/Inertia`](https://docs.ros2.org/foxy/api/geometry_msgs/msg/Inertia.html), [`InertiaStamped`](https://docs.ros2.org/foxy/api/geometry_msgs/msg/InertiaStamped.html) | [`Inertia`][mosaicolabs.models.data.dynamics.Inertia] | `InertiaAdapter` |
   | [`nav_msgs/msg/Odometry`](https://docs.ros2.org/foxy/api/nav_msgs/msg/Odometry.html) | [`MotionState`][mosaicolabs.models.data.kinematics.MotionState] | `OdometryAdapter` |
   | [`nav_msgs/msg/OccupancyGrid`](https://docs.ros2.org/foxy/api/nav_msgs/msg/OccupancyGrid.html) | [`OccupancyGrid`][mosaicolabs.ros_bridge.data_ontology.OccupancyGrid] (ROS-specific)| `OccupancyGridAdapter` |
-  | [`nav_msgs/msg/Path`](https://docs.ros2.org/foxy/api/nav_msgs/msg/Path.html) | [`Path`][mosaicolabs.ros_bridge.data_ontology.Path] (ROS-specific)| `PathAdapter` |
   | [`nav_msgs/msg/GridCells`](https://docs.ros2.org/foxy/api/nav_msgs/msg/GridCells.html) | [`GridCells`][mosaicolabs.ros_bridge.data_ontology.GridCells] (ROS-specific)| `GridCellsAdapter` |
   | [`nav_msgs/msg/MapMetaData`](https://docs.ros2.org/foxy/api/nav_msgs/msg/MapMetaData.html) | [`MapMetadata`][mosaicolabs.ros_bridge.data_ontology.MapMetadata] (ROS-specific)| `MapMetadataAdapter` |
   | [`nmea_msgs/msg/Sentence`](https://docs.ros2.org/foxy/api/nmea_msgs/msg/Sentence.html) | [`NMEASentence`][mosaicolabs.models.sensors.NMEASentence] | `NMEASentenceAdapter` |
