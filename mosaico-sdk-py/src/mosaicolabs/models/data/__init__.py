@@ -29,12 +29,9 @@ from .geometry import (
     Vector3d as Vector3d,
     Vector4d as Vector4d,
 )
-from .grid_cells import GridCells as GridCells
 from .kinematics import (
     Acceleration as Acceleration,
     MotionState as MotionState,
     Velocity as Velocity,
 )
-from .map_metadata import MapMetadata as MapMetadata
-from .occupancy_grid import OccupancyGrid as OccupancyGrid
 from .roi import ROI as ROI

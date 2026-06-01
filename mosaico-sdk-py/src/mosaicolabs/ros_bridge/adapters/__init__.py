@@ -11,12 +11,12 @@ from .geometry_msgs import (
     Vector3Adapter as Vector3Adapter,
     WrenchAdapter as WrenchAdapter,
 )
-from .grid_cells_msgs import GridCellsAdapter as GridCellsAdapter
-from .map_metadata_msgs import MapMetadataAdapter as MapMetadataAdapter
 from .nav_msgs import (
+    GridCellsAdapter as GridCellsAdapter,
+    MapMetadataAdapter as MapMetadataAdapter,
+    OccupancyGridAdapter as OccupancyGridAdapter,
     OdometryAdapter as OdometryAdapter,
 )
-from .occupancy_grid_msgs import OccupancyGridAdapter as OccupancyGridAdapter
 from .override_msgs import (
     LidarAdapter as LidarAdapter,
     RadarAdapter as RadarAdapter,
@@ -24,7 +24,6 @@ from .override_msgs import (
     StereoCameraAdapter as StereoCameraAdapter,
     ToFCameraAdapter as ToFCameraAdapter,
 )
-from .path_msgs import PathAdapter as PathAdapter
 from .sensor_msgs import (
     BatteryStateAdapter as BatteryStateAdapter,
     CameraInfoAdapter as CameraInfoAdapter,
