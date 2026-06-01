@@ -12,6 +12,7 @@ from mosaicolabs.models.futures import (
     MapMetadata,
     OccupancyGrid,
 )
+from mosaicolabs.types import Time
 
 from ..adapter_base import ROSAdapterBase
 from ..ros_bridge import register_default_adapter
@@ -526,9 +527,10 @@ class MapMetadataAdapter(ROSAdapterBase[MapMetadata]):
         """
         _validate_msgdata(cls, ros_data)
         return MapMetadata(
-            time=ros_data["map_load_time"][
-                "seconds"
-            ],  # TODO: this needs to be changed to Time
+            time=Time(
+                seconds=ros_data["map_load_time"]["seconds"],
+                nanoseconds=ros_data["map_load_time"]["nanoseconds"],
+            ).to_nanoseconds(),  # TODO: this needs to be changed to Time
             resolution=ros_data["resolution"],
             width=ros_data["width"],
             height=ros_data["height"],

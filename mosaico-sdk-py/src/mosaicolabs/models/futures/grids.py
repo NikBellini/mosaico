@@ -218,10 +218,10 @@ class MapMetadata(
 
     # TODO: this needs to be changed to Time Ontology
     time: MosaicoType.uint64 = MosaicoField(
-        description="Time (in seconds) at which the map has been loaded."
+        description="Time (in nanoseconds) at which the map has been loaded."
     )
     """
-    Time (in seconds) at which the map has been loaded.
+    Time (in nanoseconds) at which the map has been loaded.
 
     ### Querying with the **`.Q` Proxy**
     The map metadata time is queryable via the `time` field.
@@ -239,7 +239,7 @@ class MapMetadata(
         with MosaicoClient.connect("localhost", 6726) as client:
             # Filter for time seconds within a specific range
             qresponse = client.query(
-                QueryOntologyCatalog(MapMetadata.Q.time.seconds.between([100000, 200000]))
+                QueryOntologyCatalog(MapMetadata.Q.time.between([100000, 200000]))
             )
 
             # Inspect the response
@@ -251,7 +251,7 @@ class MapMetadata(
 
             # Filter for a specific component value and extract the first and last occurrence times
             qresponse = client.query(
-                QueryOntologyCatalog(MapMetadata.Q.time.seconds.between([100000, 200000]), include_timestamp_range=True)
+                QueryOntologyCatalog(MapMetadata.Q.time.between([100000, 200000]), include_timestamp_range=True)
             )
 
             # Inspect the response
