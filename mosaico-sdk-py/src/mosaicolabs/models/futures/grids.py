@@ -4,7 +4,9 @@ This module defines the fundamental building blocks for grids and maps represent
 
 """
 
-from mosaicolabs import MosaicoField, MosaicoType, Point3d, Pose, Serializable, Time
+from mosaicolabs.models.data import Point3d, Pose
+from mosaicolabs.models.serializable import Serializable
+from mosaicolabs.models.types import MosaicoField, MosaicoType
 
 
 class GridCells(Serializable):
@@ -214,9 +216,12 @@ class MapMetadata(
 
     """
 
-    time: Time = MosaicoField(description="Time at which the map has been loaded.")
+    # TODO: this needs to be changed to Time Ontology
+    time: MosaicoType.uint64 = MosaicoField(
+        description="Time (in seconds) at which the map has been loaded."
+    )
     """
-    Time at which the map has been loaded.
+    Time (in seconds) at which the map has been loaded.
 
     ### Querying with the **`.Q` Proxy**
     The map metadata time is queryable via the `time` field.

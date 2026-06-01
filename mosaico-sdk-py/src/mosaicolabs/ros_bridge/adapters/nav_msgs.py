@@ -5,7 +5,7 @@ from rosbags.typesys.store import Typestore
 if TYPE_CHECKING:
     from rosbags.typesys.store import MsgType
 
-from mosaicolabs.models import Message, Time
+from mosaicolabs.models import Message
 from mosaicolabs.models.data import MotionState, Point3d, RobotPath
 from mosaicolabs.models.futures import (
     GridCells,
@@ -526,10 +526,9 @@ class MapMetadataAdapter(ROSAdapterBase[MapMetadata]):
         """
         _validate_msgdata(cls, ros_data)
         return MapMetadata(
-            time=Time(
-                seconds=ros_data["map_load_time"]["seconds"],
-                nanoseconds=ros_data["map_load_time"]["nanoseconds"],
-            ),
+            time=ros_data["map_load_time"][
+                "seconds"
+            ],  # TODO: this needs to be changed to Time
             resolution=ros_data["resolution"],
             width=ros_data["width"],
             height=ros_data["height"],
